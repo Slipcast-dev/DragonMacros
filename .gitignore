@@ -1,0 +1,29 @@
+# сборка и результаты
+.build/
+dist/
+# системный и редакторский мусор
+.DS_Store
+__pycache__/
+*.pyc
+*.swp
+.idea/
+.vscode/
+# секреты и подпись — не должны попадать в репозиторий
+.env
+.env.*
+*.p12
+*.pfx
+*.pem
+*.key
+*.cer
+*.mobileprovision
+*.provisionprofile
+*.keychain
+*.keychain-db
+id_rsa*
+id_ed25519*
+credentials*
+secrets*
+
+# исходники логотипа в оригинальном формате (копия уже есть в Icon/source)
+*.avif

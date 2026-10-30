@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="220" viewBox="0 0 1280 220" role="img" aria-labelledby="title desc">
+<title id="title">BUILT FOR YOUR MAC</title>
+<desc id="desc">macOS 11+; Intel + Apple Silicon; Swift + AppKit; Build from source</desc>
+<rect width="1280" height="220" rx="20" fill="#141114"/>
+<rect x="32" y="34" width="5" height="36" rx="2" fill="#d52542"/>
+<text x="56" y="61" fill="#fff5ed" font-family="system-ui, sans-serif" font-size="26" font-weight="700">BUILT FOR YOUR MAC</text>
+<rect x="48" y="105" width="290" height="70" rx="12" fill="#25191e" stroke="#55313d"/>
+<text x="68" y="148" fill="#f8e6e9" font-family="system-ui, sans-serif" font-size="20">macOS 11+</text>
+<rect x="358" y="105" width="290" height="70" rx="12" fill="#25191e" stroke="#55313d"/>
+<text x="378" y="148" fill="#f8e6e9" font-family="system-ui, sans-serif" font-size="20">Intel + Apple Silicon</text>
+<rect x="668" y="105" width="290" height="70" rx="12" fill="#25191e" stroke="#55313d"/>
+<text x="688" y="148" fill="#f8e6e9" font-family="system-ui, sans-serif" font-size="20">Swift + AppKit</text>
+<rect x="978" y="105" width="290" height="70" rx="12" fill="#25191e" stroke="#55313d"/>
+<text x="998" y="148" fill="#f8e6e9" font-family="system-ui, sans-serif" font-size="20">Build from source</text>
+</svg>

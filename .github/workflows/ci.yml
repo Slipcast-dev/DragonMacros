@@ -1,0 +1,33 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    name: macOS universal build
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Validate shell scripts
+        run: sh -n build.sh .githooks/pre-commit
+      - name: Validate Python sources
+        run: python3 -m py_compile Icon/*.py
+      - name: Build Intel and Apple Silicon app
+        run: ./build.sh universal
+      - name: Verify architectures and signature
+        run: |
+          archs=$(lipo -archs .build/DragonMacros.app/Contents/MacOS/DragonMacros)
+          case " $archs " in *" arm64 "*) ;; *) exit 1 ;; esac
+          case " $archs " in *" x86_64 "*) ;; *) exit 1 ;; esac
+          codesign --verify --deep --strict --verbose=2 .build/DragonMacros.app
+          plutil -lint .build/DragonMacros.app/Contents/Info.plist
