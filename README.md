@@ -68,7 +68,7 @@ git config core.hooksPath .githooks
 |---|---|
 | `Sources/main.swift` | всё приложение (AppKit + Carbon) |
 | `build.sh` | сборка `.app`, иконки, ad-hoc подпись, установка, `.dmg`, `.pkg` |
-| `Icon/` | `make_icons.py` (иконки), `prepare_logo.py` (ресурсы из логотипа, нужен Pillow), `make_banner.py` (баннер) |
+| `Icon/` | `make_icons.py` (иконки), `prepare_logo.py` (ресурсы из логотипа, нужен Pillow), `make_banner.py` (баннер), `make_hero.py` (слоган на hero) |
 | `Icon/source/` | исходный логотип и подготовленные ресурсы |
 | `docs/images/hero.png` | баннер проекта |
 | `.githooks/` | хук pre-commit против утечки секретов |
