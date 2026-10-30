@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Готовит ресурсы дракона из source/dragon-logo-original.png (одноцветный силуэт на белом фоне).
-Нужен Pillow: pip3 install pillow. Результат (в source/): dragon-mark.png, dragon-emblem.png, icon-tile.png, status-template.png (буква M для строки меню)."""
+Нужен Pillow: pip3 install pillow. Результат (в source/): dragon-mark.png, dragon-emblem.png, icon-tile.png, status-template.png (дракон в кольце для строки меню)."""
 import os
 from PIL import Image, ImageChops, ImageDraw, ImageFont
 
@@ -34,21 +34,23 @@ def place(base, mark, box):
 def main():
     al = load_alpha()
     paint(al, 1024, RED).save(os.path.join(SRC, "dragon-mark.png"))
-    # эмблема: кремовый диск с красным кольцом и драконом (для круга в шапке окна)
-    S = 740; k = 4
-    big = Image.new("RGBA", (S * k, S * k), (255, 250, 245, 255)); d = ImageDraw.Draw(big)
-    d.ellipse([S*k*0.04, S*k*0.04, S*k*0.96, S*k*0.96], outline=RED + (255,), width=int(S*k*0.012))
-    place(big, paint(al, 1024, RED), int(S * k * 0.62))
+    # эмблема: тёплый кремовый диск (не слепящий белый) и крупный тёмно-красный дракон — чётко виден даже в 60 пикселях
+    S = 1024; k = 2
+    big = Image.new("RGBA", (S * k, S * k), (240, 231, 226, 255))
+    place(big, paint(al, 1024, (168, 14, 38)), int(S * k * 0.76))
     big.resize((S, S), Image.LANCZOS).convert("RGB").save(os.path.join(SRC, "dragon-emblem.png"))
     # плитка иконки приложения: белый фон, дракон с красным градиентом
     tile = Image.new("RGBA", (1024, 1024), (255, 255, 255, 255))
     place(tile, paint(al, 1024, gradient=True), 640); tile.convert("RGB").save(os.path.join(SRC, "icon-tile.png"))
-    # шаблонный значок строки меню: буква «M» (чёрная, прозрачность из альфы; macOS перекрашивает под тему)
-    k = 4; st = Image.new("L", (144 * k, 144 * k), 0)
-    f = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 150 * k, index=1)
-    box = ImageDraw.Draw(st).textbbox((0, 0), "M", font=f)
-    ImageDraw.Draw(st).text(((144 * k - (box[2] - box[0])) // 2 - box[0], (144 * k - (box[3] - box[1])) // 2 - box[1]), "M", font=f, fill=255)
+    # шаблонный значок строки меню: дракон в кольце (как эмблема Mortal Kombat); чёрный шаблон, прозрачность = рисунок,
+    # macOS перекрашивает его под тему строки меню
+    k = 4; N = 144
+    ring = Image.new("L", (N * k, N * k), 0); rd = ImageDraw.Draw(ring)
+    rd.ellipse([3 * k, 3 * k, (N - 3) * k - 1, (N - 3) * k - 1], fill=255)
+    rd.ellipse([13 * k, 13 * k, (N - 13) * k - 1, (N - 13) * k - 1], fill=0)
+    dr = al.resize((int(N * k * 0.74),) * 2, Image.LANCZOS)
+    st = ring.copy(); st.paste(255, ((N * k - dr.width) // 2, (N * k - dr.height) // 2 + 2 * k), dr)
     out = Image.new("RGBA", st.size, (0, 0, 0, 0)); out.putalpha(st)
-    out.resize((144, 144), Image.LANCZOS).save(os.path.join(SRC, "status-template.png"))
+    out.resize((N, N), Image.LANCZOS).save(os.path.join(SRC, "status-template.png"))
 
 if __name__ == "__main__": main()

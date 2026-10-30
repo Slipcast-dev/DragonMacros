@@ -1,16 +1,19 @@
 #!/bin/sh
 # Сборка DragonMacros.app без Xcode (достаточно Command Line Tools).
 # По умолчанию — архитектура этого Mac; "./build.sh universal" — Intel + Apple Silicon (дольше).
-# Аргументы можно сочетать: "install" копирует приложение в ~/Applications, "dmg" делает dist/DragonMacros-<версия>-macOS.dmg.
+# Аргументы можно сочетать: "install" копирует приложение в ~/Applications, "dmg" делает dist/DragonMacros-<версия>-macOS.dmg,
+# "pkg" делает установочный пакет dist/DragonMacros-<версия>-macOS.pkg (установка в /Applications).
 # Пример: "./build.sh universal install dmg".
 set -e
 cd "$(dirname "$0")"
+VERSION=0.3
 APP=.build/DragonMacros.app
 rm -rf "$APP"
 mkdir -p .build "$APP/Contents/MacOS" "$APP/Contents/Resources"
 case " $* " in *" universal "*) UNIVERSAL=1;; esac
 case " $* " in *" install "*) INSTALL=1;; esac
 case " $* " in *" dmg "*) DMG=1;; esac
+case " $* " in *" pkg "*) PKG=1;; esac
 if [ -n "$UNIVERSAL" ]; then
   for arch in x86_64 arm64; do
     swiftc -O -target $arch-apple-macos11 Sources/main.swift -o .build/dragonmacros-$arch
@@ -34,8 +37,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleExecutable</key><string>DragonMacros</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>0.2</string>
-  <key>CFBundleVersion</key><string>2</string>
+  <key>CFBundleShortVersionString</key><string>0.3</string>
+  <key>CFBundleVersion</key><string>3</string>
   <key>LSMinimumSystemVersion</key><string>11.0</string>
   <key>LSUIElement</key><true/>
   <key>NSHighResolutionCapable</key><true/>
@@ -53,9 +56,19 @@ fi
 if [ -n "$DMG" ]; then
   mkdir -p dist .build/dmg
   rm -rf .build/dmg/* && cp -R "$APP" .build/dmg/ && ln -s /Applications .build/dmg/Applications
-  OUT=dist/DragonMacros-0.2-macOS.dmg
+  OUT=dist/DragonMacros-$VERSION-macOS.dmg
   rm -f "$OUT"
   hdiutil create -quiet -volname "Dragon Macros" -srcfolder .build/dmg -ov -format UDZO "$OUT"
-  (cd dist && shasum -a 256 "$(basename "$OUT")" > SHA256SUMS.txt)
   echo "Установщик: $(pwd)/$OUT"
+fi
+if [ -n "$PKG" ]; then
+  mkdir -p dist .build/pkgroot
+  rm -rf .build/pkgroot/* && cp -R "$APP" .build/pkgroot/
+  OUT=dist/DragonMacros-$VERSION-macOS.pkg
+  rm -f "$OUT"
+  pkgbuild --quiet --root .build/pkgroot --identifier dev.slipcast.dragonmacros.pkg --version "$VERSION" --install-location /Applications "$OUT"
+  echo "Установщик: $(pwd)/$OUT"
+fi
+if [ -n "$DMG$PKG" ]; then
+  (cd dist && shasum -a 256 DragonMacros-$VERSION-macOS.* > SHA256SUMS.txt)
 fi

@@ -34,8 +34,8 @@ def main():
     for i in range(460 * K):
         a = 1 - i / (460 * K)
         d.line([(x0 + i, 214 * K), (x0 + i, 218 * K)], fill=(round(9 + (229 - 9) * a), round(3 + (34 - 3) * a), round(5 + (42 - 5) * a)))
-    d.text((x0, 240 * K), "Горячие клавиши для приложений и ссылок на macOS", font=font(27), fill=(255, 226, 228))
-    d.text((x0, 286 * K), "Hotkeys that open apps and websites on your Mac", font=font(24), fill=(222, 150, 158))
+    d.text((x0, 240 * K), "Доли секунды решают всё. Макрос решает за них", font=font(27), fill=(255, 226, 228))
+    d.text((x0, 286 * K), "Split seconds decide everything. A macro decides for you", font=font(24), fill=(222, 150, 158))
     d.text((x0, 340 * K), "macOS 11+  ·  INTEL  ·  APPLE SILICON  ·  SWIFT  ·  RU / EN", font=font(20), fill=(176, 108, 116))
     os.makedirs(os.path.join(ROOT, "docs", "images"), exist_ok=True)
     bg.convert("RGB").resize((W, H), Image.LANCZOS).save(os.path.join(ROOT, "docs", "images", "banner.png"), optimize=True)

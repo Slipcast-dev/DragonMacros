@@ -19,7 +19,7 @@ flat bold silhouette, no text, no gradients, no existing brand imitation.
 - `docs/images/social-preview.png`: вариант 1280×640 для GitHub Social preview.
 - `docs/images/features.svg`, `privacy.svg`, `build.svg`: текстовые информационные баннеры SVG.
 - `Icon/source/dragon-logo-original.png`: новый источник логотипа.
-- Остальные изображения `Icon/source/`: производные `Icon/prepare_logo.py`.
+- Остальные изображения `Icon/source/`: производные `Icon/prepare_logo.py` (в 0.3: крупная эмблема 1024×1024 на кремовом фоне, значок строки меню — дракон в кольце).
 
 Повторная подготовка иконок: `python3 Icon/prepare_logo.py` (нужен Pillow).
 `Icon/make_banner.py` создаёт альтернативный баннер `banner.png` из новой эмблемы.

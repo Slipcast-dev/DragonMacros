@@ -83,18 +83,18 @@ enum Theme {
 func rgb(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat) -> NSColor { NSColor(srgbRed: r, green: g, blue: b, alpha: 1) }
 
 extension NSColor {
-    static var dragonRed: NSColor { rgb(0.78, 0.06, 0.18) }
-    static var dragonDark: NSColor { rgb(0.42, 0.03, 0.10) }
-    static var dragonBG: NSColor { Theme.isDark ? rgb(0.09, 0.07, 0.08) : .white }
-    static var dragonSide: NSColor { Theme.isDark ? rgb(0.14, 0.08, 0.10) : rgb(0.99, 0.94, 0.94) }
-    static var dragonTint: NSColor { Theme.isDark ? rgb(0.30, 0.08, 0.12) : rgb(0.99, 0.94, 0.94) }
-    static var dragonText: NSColor { Theme.isDark ? .white : .black }
-    static var dragonGray: NSColor { Theme.isDark ? rgb(0.68, 0.62, 0.63) : rgb(0.45, 0.40, 0.40) }
-    static var dragonField: NSColor { Theme.isDark ? rgb(0.17, 0.13, 0.14) : .white }
-    static var dragonBorder: NSColor { Theme.isDark ? rgb(0.34, 0.28, 0.29) : NSColor(white: 0.80, alpha: 1) }
+    static var dragonRed: NSColor { rgb(0.62, 0.06, 0.15) }
+    static var dragonDark: NSColor { rgb(0.26, 0.03, 0.07) }
+    static var dragonBG: NSColor { Theme.isDark ? rgb(0.07, 0.06, 0.07) : rgb(0.95, 0.94, 0.94) }
+    static var dragonSide: NSColor { Theme.isDark ? rgb(0.11, 0.07, 0.08) : rgb(0.90, 0.87, 0.87) }
+    static var dragonTint: NSColor { Theme.isDark ? rgb(0.25, 0.07, 0.10) : rgb(0.93, 0.85, 0.86) }
+    static var dragonText: NSColor { Theme.isDark ? rgb(0.94, 0.93, 0.93) : rgb(0.10, 0.09, 0.09) }
+    static var dragonGray: NSColor { Theme.isDark ? rgb(0.62, 0.57, 0.58) : rgb(0.40, 0.36, 0.36) }
+    static var dragonField: NSColor { Theme.isDark ? rgb(0.14, 0.11, 0.12) : rgb(0.98, 0.97, 0.97) }
+    static var dragonBorder: NSColor { Theme.isDark ? rgb(0.30, 0.25, 0.26) : NSColor(white: 0.74, alpha: 1) }
     /// Красный для текста на фоне окна: в тёмных стилях светлее, чтобы читался.
-    static var dragonAccentText: NSColor { Theme.isDark ? rgb(1.0, 0.36, 0.42) : .dragonRed }
-    static var dragonOK: NSColor { Theme.isDark ? rgb(0.35, 0.80, 0.45) : rgb(0.10, 0.50, 0.20) }
+    static var dragonAccentText: NSColor { Theme.isDark ? rgb(0.95, 0.34, 0.40) : .dragonRed }
+    static var dragonOK: NSColor { Theme.isDark ? rgb(0.35, 0.78, 0.45) : rgb(0.10, 0.45, 0.20) }
 }
 
 // MARK: - Модель
@@ -150,6 +150,28 @@ final class MacroStore {
         // Старые версии сохраняли имя «Новый макрос» буквально — считаем его пустым, чтобы оно переводилось.
         for i in m.indices where m[i].name == "Новый макрос" { m[i].name = "" }
         macros = m
+    }
+
+    /// Конфиг для обмена: обёртка с версией; при чтении принимается и «голый» массив макросов.
+    private struct ConfigFile: Codable { var app = "DragonMacros"; var version = 1; var macros: [Macro] }
+
+    func exportConfig(to url: URL) throws {
+        let enc = JSONEncoder(); enc.outputFormatting = [.prettyPrinted, .sortedKeys]
+        try enc.encode(ConfigFile(macros: macros)).write(to: url, options: .atomic)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+    }
+
+    /// Читает конфиг; всем макросам выдаются новые идентификаторы (чтобы «Добавить» не создавало дубликатов id).
+    static func readConfig(from url: URL) throws -> [Macro] {
+        let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+        guard size <= 2_000_000 else { throw CocoaError(.fileReadTooLarge) }
+        let d = try Data(contentsOf: url)
+        var list: [Macro]
+        if let wrapped = try? JSONDecoder().decode(ConfigFile.self, from: d) { list = wrapped.macros }
+        else { list = try JSONDecoder().decode([Macro].self, from: d) }
+        if list.count > 500 { list = Array(list.prefix(500)) }
+        for i in list.indices { list[i].id = UUID() }
+        return list
     }
 
     func save() {
@@ -300,6 +322,61 @@ final class HeaderView: NSView {
     }
 }
 
+/// Кнопка в шапке в стиле macOS: полупрозрачная «таблетка» с символом SF Symbols, подсветка при наведении и нажатии.
+final class HeaderButton: NSButton {
+    private let symbol: String
+    private let label: String
+    private var hover = false
+
+    init(symbol: String, label: String, target: AnyObject, action: Selector) {
+        self.symbol = symbol; self.label = label
+        super.init(frame: .zero)
+        self.target = target; self.action = action
+        isBordered = false; title = ""; setButtonType(.momentaryChange)
+        setAccessibilityLabel(label); toolTip = label
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    var idealWidth: CGFloat {
+        ceil(NSAttributedString(string: label, attributes: [.font: NSFont.systemFont(ofSize: 13, weight: .medium)]).size().width) + 50
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect], owner: self, userInfo: nil))
+    }
+    override func mouseEntered(with event: NSEvent) { hover = true; needsDisplay = true }
+    override func mouseExited(with event: NSEvent) { hover = false; needsDisplay = true }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let alpha: CGFloat = isHighlighted ? 0.34 : (hover ? 0.24 : 0.15)
+        let r = bounds.insetBy(dx: 0.5, dy: 0.5)
+        let path = NSBezierPath(roundedRect: r, xRadius: 7, yRadius: 7)
+        NSColor(white: 1, alpha: alpha).setFill(); path.fill()
+        NSColor(white: 1, alpha: 0.28).setStroke(); path.lineWidth = 1; path.stroke()
+
+        let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 13, weight: .medium), .foregroundColor: NSColor.white]
+        let text = NSAttributedString(string: label, attributes: attrs)
+        let ts = text.size()
+        var iconW: CGFloat = 0, icon: NSImage?
+        if let img = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) {
+            let h: CGFloat = 14, w = img.size.height > 0 ? img.size.width / img.size.height * h : h
+            let tinted = NSImage(size: NSSize(width: w, height: h), flipped: false) { rect in
+                img.draw(in: rect); NSColor.white.set(); rect.fill(using: .sourceAtop); return true
+            }
+            icon = tinted; iconW = w
+        }
+        let gap: CGFloat = icon == nil ? 0 : 6
+        var x = (bounds.width - iconW - gap - ts.width) / 2
+        if let icon = icon {
+            icon.draw(in: NSRect(x: x, y: (bounds.height - icon.size.height) / 2, width: iconW, height: icon.size.height))
+            x += iconW + gap
+        }
+        text.draw(at: NSPoint(x: x, y: (bounds.height - ts.height) / 2))
+    }
+}
+
 final class DragonRow: NSTableRowView {
     override func drawSelection(in dirtyRect: NSRect) {
         NSColor.dragonRed.withAlphaComponent(Theme.isDark ? 0.35 : 0.14).setFill()
@@ -360,7 +437,7 @@ final class HotkeyField: NSView {
 
 func styleButton(_ b: NSButton, title: String, filled: Bool, size: CGFloat = 13) {
     b.isBordered = false; b.wantsLayer = true
-    b.layer?.cornerRadius = 8; b.layer?.borderWidth = 1.5; b.layer?.borderColor = NSColor.dragonRed.cgColor
+    b.layer?.cornerRadius = 7; b.layer?.borderWidth = filled ? 0 : 1; b.layer?.borderColor = NSColor.dragonRed.cgColor
     b.layer?.backgroundColor = (filled ? NSColor.dragonRed : NSColor.clear).cgColor
     let p = NSMutableParagraphStyle(); p.alignment = .center
     b.attributedTitle = NSAttributedString(string: title, attributes: [
@@ -411,10 +488,10 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
 
     init(store: MacroStore, selectIndex: Int? = nil) {
         self.store = store
-        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 900, height: 580),
+        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 920, height: 590),
                          styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         w.title = "Dragon Macros"
-        w.minSize = NSSize(width: 800, height: 540)
+        w.minSize = NSSize(width: 860, height: 540)
         w.appearance = Theme.appearance
         w.isReleasedWhenClosed = false
         w.center()
@@ -437,30 +514,36 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
 
     private func build(in root: NSView) {
         root.wantsLayer = true; root.layer?.backgroundColor = NSColor.dragonBG.cgColor
-        let W = root.bounds.width, H = root.bounds.height, headH: CGFloat = 76, sideW: CGFloat = 280
+        let W = root.bounds.width, H = root.bounds.height, headH: CGFloat = 84, sideW: CGFloat = 280
 
         let header = HeaderView(frame: NSRect(x: 0, y: H - headH, width: W, height: headH)); header.autoresizingMask = [.width, .minYMargin]
         if let img = emblemImage() {
-            let iv = NSImageView(frame: NSRect(x: 20, y: 12, width: 52, height: 52)); iv.image = img; iv.imageScaling = .scaleProportionallyUpOrDown
-            iv.wantsLayer = true; iv.layer?.cornerRadius = 26; iv.layer?.masksToBounds = true
-            iv.layer?.borderWidth = 2; iv.layer?.borderColor = NSColor.white.cgColor
+            let iv = NSImageView(frame: NSRect(x: 20, y: (headH - 60) / 2, width: 60, height: 60)); iv.image = img; iv.imageScaling = .scaleProportionallyUpOrDown
+            iv.wantsLayer = true; iv.layer?.cornerRadius = 30; iv.layer?.masksToBounds = true
+            iv.layer?.borderWidth = 2; iv.layer?.borderColor = NSColor(white: 1, alpha: 0.9).cgColor
+            iv.setAccessibilityLabel("Dragon Macros")
             header.addSubview(iv)
         }
         let title = NSTextField(labelWithString: "Dragon Macros"); title.font = .systemFont(ofSize: 24, weight: .bold); title.textColor = .white
-        title.frame = NSRect(x: 86, y: 36, width: 400, height: 30); header.addSubview(title)
-        let sub = NSTextField(labelWithString: L("Горячие клавиши для приложений и ссылок", "Hotkeys for apps and links")); sub.font = .systemFont(ofSize: 13)
-        sub.textColor = NSColor(white: 1, alpha: 0.82); sub.frame = NSRect(x: 87, y: 14, width: 450, height: 18); header.addSubview(sub)
-        // Кнопка настроек
-        let gear = NSButton(title: "", target: self, action: #selector(settingsClicked))
-        gear.frame = NSRect(x: W - 156, y: 22, width: 136, height: 32); gear.autoresizingMask = [.minXMargin]
-        gear.isBordered = false; gear.wantsLayer = true
-        gear.layer?.cornerRadius = 8; gear.layer?.borderWidth = 1.5; gear.layer?.borderColor = NSColor.white.cgColor
-        gear.layer?.backgroundColor = NSColor(white: 1, alpha: 0.16).cgColor
-        gear.attributedTitle = NSAttributedString(string: " " + L("Настройки", "Settings"), attributes: [
-            .foregroundColor: NSColor.white, .font: NSFont.systemFont(ofSize: 13, weight: .semibold)])
-        if let g = NSImage(systemSymbolName: "gearshape.fill", accessibilityDescription: L("Настройки", "Settings")) { gear.image = g; gear.imagePosition = .imageLeading }
-        gear.contentTintColor = .white; gear.toolTip = L("Настройки (⌘,)", "Settings (⌘,)")
-        header.addSubview(gear)
+        title.frame = NSRect(x: 96, y: 44, width: 400, height: 30); header.addSubview(title)
+        let sub = NSTextField(labelWithString: L("Доли секунды решают всё. Макрос решает за них", "Split seconds decide everything. A macro decides for you"))
+        sub.font = .systemFont(ofSize: 13); sub.textColor = NSColor(white: 1, alpha: 0.85); sub.frame = NSRect(x: 97, y: 22, width: 400, height: 18)
+        sub.lineBreakMode = .byTruncatingTail; header.addSubview(sub)
+        // Кнопки справа: «Загрузить», «Сохранить», «Настройки»
+        let buttons = [
+            HeaderButton(symbol: "square.and.arrow.down", label: L("Загрузить", "Load"), target: self, action: #selector(loadConfig)),
+            HeaderButton(symbol: "square.and.arrow.up", label: L("Сохранить", "Save"), target: self, action: #selector(saveConfig)),
+            HeaderButton(symbol: "gearshape.fill", label: L("Настройки", "Settings"), target: self, action: #selector(settingsClicked)),
+        ]
+        buttons[0].toolTip = L("Загрузить конфиг макросов из файла (⌘O)", "Load macros config from a file (⌘O)")
+        buttons[1].toolTip = L("Сохранить конфиг макросов в файл (⌘S)", "Save macros config to a file (⌘S)")
+        buttons[2].toolTip = L("Настройки (⌘,)", "Settings (⌘,)")
+        var bx = W - 20
+        for b in buttons.reversed() {
+            let w = b.idealWidth; bx -= w
+            b.frame = NSRect(x: bx, y: (headH - 30) / 2, width: w, height: 30); b.autoresizingMask = [.minXMargin]
+            header.addSubview(b); bx -= 8
+        }
         root.addSubview(header)
 
         // Левая колонка
@@ -639,6 +722,62 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
     // MARK: Действия
 
     @objc private func settingsClicked() { onOpenSettings?() }
+
+    // MARK: Загрузка и сохранение конфига
+
+    private func alert(_ title: String, _ info: String) {
+        let a = NSAlert(); a.messageText = title; a.informativeText = info; a.alertStyle = .warning
+        a.addButton(withTitle: "OK"); a.beginSheetModal(for: window!)
+    }
+
+    /// Сохраняет макросы в JSON-файл, выбранный пользователем.
+    @objc func saveConfig() {
+        let p = NSSavePanel()
+        p.allowedFileTypes = ["json"]; p.canCreateDirectories = true
+        p.nameFieldStringValue = "DragonMacros-config.json"
+        p.title = L("Сохранить конфиг макросов", "Save macros config"); p.prompt = L("Сохранить", "Save")
+        p.beginSheetModal(for: window!) { [weak self] r in
+            guard r == .OK, let url = p.url, let self = self else { return }
+            do {
+                try self.store.exportConfig(to: url)
+            } catch {
+                self.alert(L("Не удалось сохранить файл", "Could not save the file"), error.localizedDescription)
+            }
+        }
+    }
+
+    /// Загружает макросы из JSON-файла: заменить текущие или добавить к ним.
+    @objc func loadConfig() {
+        let p = NSOpenPanel()
+        p.allowedFileTypes = ["json"]; p.canChooseDirectories = false; p.allowsMultipleSelection = false
+        p.title = L("Загрузить конфиг макросов", "Load macros config"); p.prompt = L("Загрузить", "Load")
+        p.beginSheetModal(for: window!) { [weak self] r in
+            guard r == .OK, let url = p.url, let self = self else { return }
+            let loaded: [Macro]
+            do { loaded = try MacroStore.readConfig(from: url) }
+            catch {
+                self.alert(L("Не удалось загрузить конфиг", "Could not load the config"),
+                           L("Файл не похож на конфиг Dragon Macros или повреждён.", "The file is not a Dragon Macros config or is damaged."))
+                return
+            }
+            guard !loaded.isEmpty else {
+                self.alert(L("Конфиг пуст", "The config is empty"), L("В файле нет ни одного макроса.", "The file contains no macros.")); return
+            }
+            var mode: Int
+            if self.store.macros.isEmpty { mode = 0 } else {
+                let a = NSAlert()
+                a.messageText = L("Загрузить \(loaded.count) макр. из файла?", "Load \(loaded.count) macro(s) from the file?")
+                a.informativeText = L("Заменить текущие макросы или добавить к ним?", "Replace the current macros or add to them?")
+                a.addButton(withTitle: L("Заменить", "Replace")); a.addButton(withTitle: L("Добавить", "Add")); a.addButton(withTitle: L("Отмена", "Cancel"))
+                let resp = a.runModal()
+                if resp == .alertFirstButtonReturn { mode = 0 } else if resp == .alertSecondButtonReturn { mode = 1 } else { return }
+            }
+            if mode == 0 { self.store.macros = loaded } else { self.store.macros += loaded }
+            self.store.save(); self.table.reloadData()
+            if !self.store.macros.isEmpty { self.table.selectRowIndexes([mode == 0 ? 0 : self.store.macros.count - loaded.count], byExtendingSelection: false) }
+            self.loadEditor()
+        }
+    }
 
     @objc private func addMacro() {
         store.macros.append(Macro()); store.save(); table.reloadData()
@@ -890,6 +1029,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         sub("Dragon Macros", [prefs, .separator(),
                               NSMenuItem(title: L("Скрыть Dragon Macros", "Hide Dragon Macros"), action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"),
                               .separator(), NSMenuItem(title: L("Выйти", "Quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")])
+        let loadItem = NSMenuItem(title: L("Загрузить конфиг…", "Load Config…"), action: #selector(MainWindowController.loadConfig), keyEquivalent: "o")
+        let saveItem = NSMenuItem(title: L("Сохранить конфиг…", "Save Config…"), action: #selector(MainWindowController.saveConfig), keyEquivalent: "s")
+        sub(L("Файл", "File"), [loadItem, saveItem])
         sub(L("Правка", "Edit"), [NSMenuItem(title: L("Отменить", "Undo"), action: Selector(("undo:")), keyEquivalent: "z"),
                        .separator(),
                        NSMenuItem(title: L("Вырезать", "Cut"), action: #selector(NSText.cut(_:)), keyEquivalent: "x"),
