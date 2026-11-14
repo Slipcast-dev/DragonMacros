@@ -1,4 +1,6 @@
-# Участие в проекте / Contributing
+# Участие в проекте
+
+[Русский](CONTRIBUTING.md) · [English](CONTRIBUTING.en.md)
 
 Обсуждение и pull requests принимаются на русском и английском языках.
 Перед крупными изменениями опишите задачу в issue. Для исправлений создайте ветку от `main`.
@@ -9,8 +11,11 @@
 
 ```sh
 git config core.hooksPath .githooks
-sh -n build.sh .githooks/pre-commit
+sh -n build.sh test.sh test-interface.sh .githooks/pre-commit
 python3 -m py_compile Icon/*.py
+python3 -m unittest discover -s Icon -p 'test_*.py'
+./test.sh
+./test-interface.sh
 ./build.sh universal
 codesign --verify --deep --strict .build/DragonMacros.app
 ```

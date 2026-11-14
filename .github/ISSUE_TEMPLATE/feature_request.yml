@@ -1,15 +1,15 @@
 name: Предложение / Feature request
-description: Предложить улучшение
+description: Предложить улучшение / Suggest an improvement
 body:
   - type: textarea
     id: problem
     attributes:
-      label: Какую задачу требуется решить?
+      label: Какую задачу требуется решить? / What problem should be solved?
     validations:
       required: true
   - type: textarea
     id: solution
     attributes:
-      label: Предлагаемое решение и альтернативы
+      label: Предлагаемое решение и альтернативы / Proposed solution and alternatives
     validations:
       required: true

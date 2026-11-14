@@ -1,24 +1,24 @@
 name: Ошибка / Bug report
-description: Воспроизводимая ошибка приложения
+description: Воспроизводимая ошибка / Reproducible application bug
 title: "[Bug]: "
 body:
   - type: input
     id: environment
     attributes:
-      label: Версия Dragon Macros, macOS и архитектура
-      placeholder: "0.3, macOS 15, Apple Silicon"
+      label: Версия приложения, macOS, архитектура / App version, macOS, architecture
+      placeholder: "0.5.1, macOS 15, Apple Silicon"
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: Шаги воспроизведения
-      description: Не прикладывайте личные ссылки и содержимое macros.json.
+      label: Шаги воспроизведения / Steps to reproduce
+      description: Не прикладывайте личные данные / Do not include private links or your macros.json.
     validations:
       required: true
   - type: textarea
     id: result
     attributes:
-      label: Ожидаемое и фактическое поведение
+      label: Ожидаемое и фактическое поведение / Expected and actual behavior
     validations:
       required: true
