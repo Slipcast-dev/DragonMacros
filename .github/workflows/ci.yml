@@ -19,13 +19,17 @@ jobs:
         with:
           persist-credentials: false
       - name: Validate shell scripts
-        run: sh -n build.sh .githooks/pre-commit
+        run: sh -n build.sh test.sh test-interface.sh .githooks/pre-commit
       - name: Validate Python sources
         run: python3 -m py_compile Icon/*.py
-      - name: Build Intel and Apple Silicon app
-        run: ./build.sh universal
+      - name: Test persistence and config validation
+        run: ./test.sh
+      - name: Test ICNS packaging
+        run: python3 -m unittest discover -s Icon -p 'test_*.py'
+      - name: Test native AppKit interface in isolation
+        run: ./test-interface.sh
       - name: Build installers
-        run: ./build.sh universal dmg pkg
+        run: ./build.sh universal test-app dmg pkg
       - name: Verify architectures and signature
         run: |
           archs=$(lipo -archs .build/DragonMacros.app/Contents/MacOS/DragonMacros)
@@ -33,3 +37,7 @@ jobs:
           case " $archs " in *" x86_64 "*) ;; *) exit 1 ;; esac
           codesign --verify --deep --strict --verbose=2 .build/DragonMacros.app
           plutil -lint .build/DragonMacros.app/Contents/Info.plist
+          codesign --verify --deep --strict DragonMacros-Test.app
+          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' DragonMacros-Test.app/Contents/Info.plist)" = "0.5.1"
+          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' DragonMacros-Test.app/Contents/Info.plist)" = "6"
+          (cd dist && shasum -a 256 -c SHA256SUMS.txt)

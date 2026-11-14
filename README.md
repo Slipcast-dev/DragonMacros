@@ -1,93 +1,125 @@
-<p align="center"><img src="docs/images/hero.png" alt="Dragon Macros" width="100%"></p>
+<p align="center"><a href="README.md">Русский</a> · <a href="README.en.md">English</a></p>
+
+<p align="center"><img src="docs/images/hero-samurai.png" alt="Dragon Macros — Samurai Motion" width="100%"></p>
 
 <p align="center">
-  <img alt="macOS 11+" src="https://img.shields.io/badge/macOS-11%2B-black?logo=apple&logoColor=white">
-  <img alt="Intel и Apple Silicon" src="https://img.shields.io/badge/arch-Intel%20%7C%20Apple%20Silicon-blue">
-  <img alt="Swift" src="https://img.shields.io/badge/Swift-5-F05138?logo=swift&logoColor=white">
-  <img alt="RU / EN" src="https://img.shields.io/badge/language-RU%20%2F%20EN-c8102e">
-</p>
-
-<p align="center">
+  <a href="https://github.com/Slipcast-dev/DragonMacros/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/Slipcast-dev/DragonMacros?style=flat&color=df4938"></a>
+  <a href="https://github.com/Slipcast-dev/DragonMacros/releases"><img alt="Release asset downloads" src="https://img.shields.io/github/downloads/Slipcast-dev/DragonMacros/total?style=flat&color=df4938"></a>
+  <a href="https://github.com/Slipcast-dev/DragonMacros/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/Slipcast-dev/DragonMacros?style=flat&color=df4938"></a>
   <a href="https://github.com/Slipcast-dev/DragonMacros/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Slipcast-dev/DragonMacros/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-d52542"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-df4938"></a>
+  <img alt="macOS 11 or later" src="https://img.shields.io/badge/macOS-11%2B-191a1b?logo=apple&logoColor=white">
 </p>
 
 # Dragon Macros
 
-Приложение для macOS: назначьте глобальную комбинацию клавиш и выберите действие — **открыть приложение** из списка
-установленных или **открыть сайт / ссылку**. Работает с любой клавиатурой, не требует разрешений «Мониторинг ввода»
-и «Универсальный доступ» (комбинации регистрируются через Carbon `RegisterEventHotKey`).
+Глобальные горячие клавиши для приложений и ссылок на Mac. Назначьте сочетание,
+выберите действие и запускайте его из любого приложения. Нативный интерфейс AppKit,
+японское оформление Samurai Motion, русский и английский языки.
 
-*Hotkeys that open apps and websites on your Mac. Any keyboard, no special permissions. Interface in Russian and English.*
+**macOS 11+ · Intel и Apple Silicon · без сторонних Swift-зависимостей.**
 
-![Возможности: приложения, сайты, пауза, RU / EN](docs/images/features.svg)
+## Скачать 0.5.1
+
+[**DMG — перетащить в «Программы»**](https://github.com/Slipcast-dev/DragonMacros/releases/download/v0.5.1/DragonMacros-0.5.1-macOS.dmg)
+· [PKG — установщик](https://github.com/Slipcast-dev/DragonMacros/releases/download/v0.5.1/DragonMacros-0.5.1-macOS.pkg)
+· [SHA256](https://github.com/Slipcast-dev/DragonMacros/releases/download/v0.5.1/SHA256SUMS.txt)
+· [Все релизы](https://github.com/Slipcast-dev/DragonMacros/releases)
+
+Оба установщика содержат универсальное приложение для Intel и Apple Silicon.
+Перед обновлением полностью завершите старый экземпляр через **⌘Q**.
+Макросы и настройки сохраняются. Сборка подписана ad-hoc и **не нотаризована**;
+при предупреждении Gatekeeper открывайте её через системные настройки безопасности
+только после проверки источника. Не отключайте Gatekeeper целиком.
+
+Значки звёзд и скачиваний обновляются автоматически. Скачивания — это загрузки
+файлов релизов GitHub, а не число уникальных пользователей или установок.
 
 ## Возможности
 
-- Макросы на комбинации клавиш: запись комбинации кликом, проверка конфликтов и занятых системой сочетаний.
-- Действия: открыть приложение (список из `/Applications`, `/System/Applications`, `~/Applications`, есть «Другое приложение…») или открыть ссылку (`https://`, `mailto:` и др.; схема `https://` добавляется сама).
-- Кнопки «Загрузить» (⌘O) и «Сохранить» (⌘S) в шапке: перенос конфига макросов в JSON-файл и из него — в любое место по выбору (при загрузке можно заменить текущие макросы или добавить к ним).
-- Настройки (кнопка в шапке или ⌘,): значок в Dock, значок дракона в круге в строке меню, запуск при входе в систему, запуск в свёрнутом виде.
-- Стили: оригинальный бело-красный, чёрно-красный, «как в системе».
-- Язык интерфейса: русский / English, переключается на лету.
-- Пауза всех макросов из меню в строке меню.
+- Глобальные сочетания через Carbon `RegisterEventHotKey`, без разрешений «Мониторинг ввода» и «Универсальный доступ».
+- Запуск установленного `.app` или открытие сайта / ссылки; запись сочетания и отображение конфликтов.
+- Загрузка и сохранение JSON-конфига через **⌘O / ⌘S**, с заменой или добавлением макросов.
+- Четыре стиля: **Самурай**, бело-красный, чёрно-красный и системный. Анимация учитывает «Уменьшение движения» macOS и отключается в настройках.
+- Русский и английский интерфейсы, переключаемые на лету.
+- Пауза макросов, значок строки меню, отображение в Dock, запуск при входе и запуск в свёрнутом виде.
+- Локальное хранение без телеметрии. Приложение не отправляет данные; выбранные ссылки передаются системным обработчикам.
 
-Макросы хранятся в `~/Library/Application Support/DragonMacros/macros.json`; файл для переноса (кнопка «Сохранить») — отдельный JSON в выбранной папке.
+## Интерфейс
 
-## Установка
+![Самурай: графит, киноварь и красное солнце](docs/images/interface-0.5.1-samurai.png)
 
-Соберите приложение из исходников по инструкции ниже. Команда `./build.sh universal dmg pkg`
-создаст локальные установщики `dist/DragonMacros-0.3-macOS.dmg` (перетащите приложение в «Программы») и
-`dist/DragonMacros-0.3-macOS.pkg` (установка в `/Applications`), а также `dist/SHA256SUMS.txt`.
-Готовые установщики (`.dmg`, `.pkg`, контрольные суммы) — на странице [Releases](https://github.com/Slipcast-dev/DragonMacros/releases).
+<details>
+<summary>Другие темы и первый запуск</summary>
 
-Сборка подписана ad-hoc и не нотаризована. При предупреждении Gatekeeper используйте
-«Системные настройки → Конфиденциальность и безопасность → Всё равно открыть» только
-для своей сборки или проверенного источника. Не отключайте Gatekeeper целиком.
+![Бело-красный стиль](docs/images/interface-0.5.1-original.png)
 
-![Сборка: macOS 11+, Intel и Apple Silicon, Swift и AppKit](docs/images/build.svg)
+![Чёрно-красный стиль](docs/images/interface-0.5.1-dark.png)
 
-## Сборка
+![Системный стиль](docs/images/interface-0.5.1-system.png)
 
-Нужны macOS, Python 3 и Apple Command Line Tools (`xcode-select --install`), полный Xcode не требуется.
+![Пустой список: добавить макрос или загрузить конфиг](docs/images/interface-0.5.1-empty.png)
+
+</details>
+
+Снимки получены из изолированной AppKit-проверки с временными демонстрационными данными.
+При первом запуске нажмите **«Добавить макрос»** или **«Загрузить конфиг»**.
+Для анимированной композиции выберите стиль **«Самурай»** в настройках (**⌘,**).
+
+## Данные и надёжность
+
+Макросы: `~/Library/Application Support/DragonMacros/macros.json`. Настройки хранятся
+в `UserDefaults`. Конфиг для переноса — отдельный JSON в выбранной вами папке.
+Импорт ограничен **500 макросами и 2 МБ**; превышение лимитов отклоняет операцию целиком.
+
+Текст автоматически сохраняется через 0,4 секунды после ввода; перед сменой макроса,
+закрытием окна, экспортом и выходом изменения записываются сразу. Ошибки записи
+показываются пользователю. Повреждённый файл копируется под уникальным именем
+`macros.corrupt-<UUID>.json`; при неудачном резервировании дальнейшая запись блокируется.
+Подробности и ограничения — в [политике безопасности](SECURITY.md).
+
+## Сборка из исходников
+
+Нужны **macOS, Python 3 и Apple Command Line Tools** (`xcode-select --install`).
+Полный Xcode и сторонние Swift-пакеты не требуются.
 
 ```sh
 git clone https://github.com/Slipcast-dev/DragonMacros.git
 cd DragonMacros
 git config core.hooksPath .githooks
+./build.sh universal test-app dmg pkg
 ```
+
+| Результат | Путь |
+|---|---|
+| Приложение | `.build/DragonMacros.app` |
+| Тестовая копия | `DragonMacros-Test.app` в корне проекта |
+| Установщики и контрольные суммы | `dist/` |
+
+`./build.sh` собирает только для этого Mac. Флаг `install` отдельно копирует приложение
+в `~/Applications`. Тестовая копия использует **те же пользовательские макросы и настройки**,
+что и обычная сборка; отдельного профиля данных у неё нет. Одновременно работает один экземпляр.
+
+## Проверки
 
 ```sh
-./build.sh                       # сборка для этого Mac → .build/DragonMacros.app
-./build.sh universal install dmg pkg # Intel + Apple Silicon, копия в ~/Applications, dist/*.dmg и dist/*.pkg
+./test.sh
+python3 -m unittest discover -s Icon -p 'test_*.py'
+./test-interface.sh
 ```
 
-## Структура
-
-| Путь | Назначение |
-|---|---|
-| `Sources/main.swift` | всё приложение (AppKit + Carbon) |
-| `build.sh` | сборка `.app`, иконки, ad-hoc подпись, установка, `.dmg`, `.pkg` |
-| `Icon/` | `make_icons.py` (иконки), `prepare_logo.py` (ресурсы из логотипа, нужен Pillow), `make_banner.py` (баннер), `make_hero.py` (слоган на hero) |
-| `Icon/source/` | исходный логотип и подготовленные ресурсы |
-| `docs/images/hero.png` | баннер проекта |
-| `.githooks/` | хук pre-commit против утечки секретов |
-
-![Приватность: локальное хранение, без телеметрии и записи нажатий](docs/images/privacy.svg)
-
-## Безопасность
-
-Подробности — в [SECURITY.md](SECURITY.md). Кратко: сеть не используется, ввод не перехватывается, ссылки со схемами `file:`/`javascript:`/`data:` блокируются, запускаются только `.app`, данные хранятся с правами 0600. `.gitignore` и локальный хук `.githooks/pre-commit` помогают предотвратить случайные утечки;
-они не заменяют серверную защиту ветки. Приложение не работает в App Sandbox.
-Сторонние URL-схемы могут вызывать системные обработчики — добавляйте только доверенные ссылки.
+Тесты используют временные данные. AppKit-проверка создаёт offscreen-снимки в
+`.build/interface-tests/`, проверяет поля, сохранение текста, счётчики, пустое состояние,
+темы и контракты Core Animation. Она не заменяет проверку горячих клавиш, системных
+диалогов и воспроизведения анимации в реальном окне. Кэш Swift хранится в `.build/`.
 
 ## Разработка и поддержка
 
-- [Участие в проекте](CONTRIBUTING.md) и [правила сообщества](CODE_OF_CONDUCT.md).
-- [История изменений](CHANGELOG.md), [анализ проекта](docs/PROJECT_REVIEW.md).
+- [Участие в проекте](CONTRIBUTING.md) · [Правила сообщества](CODE_OF_CONDUCT.md).
+- [История изменений](CHANGELOG.md) · [Заметки к 0.5.1](docs/RELEASE-v0.5.1.md).
 - [Сообщить об ошибке](https://github.com/Slipcast-dev/DragonMacros/issues/new/choose).
-- Уязвимости: см. [SECURITY.md](SECURITY.md); не публикуйте детали в issues.
+- Уязвимости: [SECURITY.md](SECURITY.md). Не публикуйте чувствительные детали в issues.
+- Инженерные материалы: [архитектура и проверки](docs/PROJECT_REVIEW.md), [дизайн](docs/DESIGN.md).
 
-## Лицензия
-
-Код — [MIT](LICENSE). Графика и её происхождение описаны в [NOTICE.md](NOTICE.md) и [docs/ARTWORK.md](docs/ARTWORK.md).
+Код и документация — [MIT](LICENSE). Источники и условия распространения графики:
+[NOTICE.md](NOTICE.md), [ARTWORK.md](docs/ARTWORK.md).

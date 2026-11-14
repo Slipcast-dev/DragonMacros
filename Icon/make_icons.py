@@ -1,16 +1,67 @@
 #!/usr/bin/env python3
-"""Сборка иконок DragonMacros из Icon/source/icon-tile.png и status-template.png: AppIcon.icns и StatusIcon@2x.png (шаблонный значок для строки меню).
-Требуется macOS: sips (масштаб), iconutil. Сторонние пакеты не нужны."""
+"""Сборка иконок DragonMacros из Icon/source/japan-app-icon.png и status-template.png: AppIcon.icns и StatusIcon@2x.png (шаблонный значок для строки меню).
+Требуется macOS: sips (масштаб). ICNS собирается напрямую из PNG; сторонние пакеты не нужны."""
 import os, struct, subprocess, sys, zlib, shutil
+from pathlib import Path
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", ".build", "icons")
 
-def run(*a): subprocess.run(a, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+def run(*args: str) -> None:
+    """Запускает инструмент; stderr сохраняется для диагностики ошибок сборки."""
+    subprocess.run(args, check=True, stdout=subprocess.DEVNULL)
+
+
+# Типы элементов ICNS различают обычные и Retina-изображения одного размера.
+ICON_ELEMENTS = (
+    (b"ic04", 16, 1), (b"ic11", 16, 2),
+    (b"ic05", 32, 1), (b"ic12", 32, 2),
+    (b"ic07", 128, 1), (b"ic13", 128, 2),
+    (b"ic08", 256, 1), (b"ic14", 256, 2),
+    (b"ic09", 512, 1), (b"ic10", 512, 2),
+)
+
+
+def pack_icns(iconset: Path, destination: Path) -> None:
+    """Собирает стандартный ICNS из PNG без зависимости от упаковщика iconutil.
+
+    Крупные элементы содержат PNG, а 16/32 px — четыре плоскости ARGB.
+    Перед записью проверяются сигнатура и размеры каждого обязательного файла.
+    """
+    chunks: list[bytes] = []
+    for kind, base, scale in ICON_ELEMENTS:
+        suffix = "@2x" if scale == 2 else ""
+        source = iconset / f"icon_{base}x{base}{suffix}.png"
+        data = source.read_bytes()
+        expected = base * scale
+        if (len(data) < 33 or data[:8] != b"\x89PNG\r\n\x1a\n"
+                or data[12:16] != b"IHDR"
+                or struct.unpack(">II", data[16:24]) != (expected, expected)):
+            raise ValueError(f"Некорректный PNG или размер иконки: {source}")
+        if kind in (b"ic04", b"ic05"):
+            # Системный Icon Services ожидает ARGB для малых иконок.
+            # Используем допустимые буквальные RLE-блоки (до 128 байтов).
+            _, _, rows = read_png(source)
+            rgba = bytearray(b"".join(rows))
+            # ARGB хранит RGB с предварительным умножением на альфа-канал.
+            for i in range(0, len(rgba), 4):
+                alpha = rgba[i + 3]
+                for channel in range(3):
+                    rgba[i + channel] = (rgba[i + channel] * alpha + 127) // 255
+            planes = []
+            for channel in (3, 0, 1, 2):
+                plane = rgba[channel::4]
+                planes.extend(bytes([len(plane[i:i + 128]) - 1]) + plane[i:i + 128]
+                              for i in range(0, len(plane), 128))
+            data = b"ARGB" + b"".join(planes)
+        chunks.append(struct.pack(">4sI", kind, len(data) + 8) + data)
+    body = b"".join(chunks)
+    destination.write_bytes(struct.pack(">4sI", b"icns", len(body) + 8) + body)
+
 
 def read_png(path):
     """Читает PNG 8 бит (RGB или RGBA, без чересстрочности) и возвращает (w, h, строки RGBA)."""
-    d = open(path, "rb").read(); i = 8; idat = b""
+    d = Path(path).read_bytes(); i = 8; idat = b""
     while i < len(d):
         n, t = struct.unpack(">I4s", d[i:i+8]); c = d[i+8:i+8+n]
         if t == b"IHDR": w, h, bd, ct, _, _, il = struct.unpack(">IIBBBBB", c)
@@ -41,7 +92,7 @@ def write_png(path, w, h, rows):
     def chunk(t, c):
         return struct.pack(">I", len(c)) + t + c + struct.pack(">I", zlib.crc32(t + c) & 0xffffffff)
     body = b"".join(b"\x00" + bytes(r) for r in rows)
-    open(path, "wb").write(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0))
+    Path(path).write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0))
                            + chunk(b"IDAT", zlib.compress(body, 9)) + chunk(b"IEND", b""))
 
 def render(svg, size, name):
@@ -56,53 +107,28 @@ def sdf_round_rect(px, py, cx=512.0, cy=512.0, half=412.0, r=185.0):
 def scale_png(src, size, dst):
     run("sips", "-z", str(size), str(size), src, "--out", dst)
 
-def main():
-    shutil.rmtree(OUT, ignore_errors=True); os.makedirs(OUT)
-    emblem_src = os.path.join(HERE, "source", "icon-tile.png")
-    # --- иконка приложения: белый скруглённый квадрат стандартного размера macOS (824 из 1024) с мягкой тенью,
-    #     эмблема вписана «умножением» (белый фон картинки сливается с плиткой)
-    S = 840
-    emb = os.path.join(OUT, "emblem_scaled.png"); scale_png(emblem_src, S, emb)
-    _, _, erows = read_png(emb); off = (1024 - S) // 2
-    rows = []
-    for y in range(1024):
-        row = bytearray(1024 * 4)
-        for x in range(1024):
-            d = sdf_round_rect(x + .5, y + .5)
-            cover = min(max(0.5 - d, 0.0), 1.0)
-            ds = sdf_round_rect(x + .5, y + .5 - 12)          # тень смещена вниз
-            sh = 0.30 * max(0.0, 1.0 - max(ds, 0.0) / 30.0) ** 2
-            o = x * 4
-            if cover <= 0.0 and sh <= 0.002:
-                continue
-            # плитка: тёплый белый с лёгким вертикальным градиентом
-            g = 1.0 - 0.045 * (y - 100) / 824.0
-            br, bg, bb = 255 * g, 252 * g, 248 * g
-            ex, ey = x - off, y - off
-            if 0 <= ex < S and 0 <= ey < S:
-                e = erows[ey]; k = ex * 4
-                br, bg, bb = br * e[k] / 255.0, bg * e[k+1] / 255.0, bb * e[k+2] / 255.0
-            # плитка поверх тени
-            a_out = cover + sh * (1 - cover)
-            if a_out <= 0: continue
-            r_ = (br * cover + 0 * sh * (1 - cover)) / a_out
-            g_ = (bg * cover) / a_out
-            b_ = (bb * cover) / a_out
-            row[o:o+4] = bytes((round(min(r_, 255)), round(min(g_, 255)), round(min(b_, 255)), round(a_out * 255)))
-        rows.append(row)
-    big = os.path.join(OUT, "app_1024.png"); write_png(big, 1024, 1024, rows)
-    iconset = os.path.join(OUT, "AppIcon.iconset"); os.makedirs(iconset)
+def main() -> None:
+    """Масштабирует утверждённую японскую иконку, сохраняя альфа-канал плитки.
+
+    Ресурс уже содержит форму и мягкую тень: повторное рисование белой плитки
+    исказило бы утверждённый дизайн. Упаковка ICNS остаётся независимой от iconutil.
+    """
+    shutil.rmtree(OUT, ignore_errors=True)
+    os.makedirs(OUT)
+    source = os.path.join(HERE, "source", "japan-app-icon.png")
+    iconset = Path(OUT) / "AppIcon.iconset"
+    iconset.mkdir()
     for base in (16, 32, 128, 256, 512):
         for scale in (1, 2):
-            px = base * scale
-            name = f"icon_{base}x{base}" + ("@2x" if scale == 2 else "") + ".png"
-            run("sips", "-z", str(px), str(px), big, "--out", os.path.join(iconset, name))
-    run("iconutil", "-c", "icns", iconset, "-o", os.path.join(OUT, "AppIcon.icns"))
-    # --- значок строки меню: готовый чёрный шаблон (прозрачность = силуэт дракона)
+            suffix = "@2x" if scale == 2 else ""
+            scale_png(source, base * scale, str(iconset / f"icon_{base}x{base}{suffix}.png"))
+    pack_icns(iconset, Path(OUT) / "AppIcon.icns")
+    # Системный шаблон значка строки меню сохраняется отдельно от цветной иконки.
     status = os.path.join(HERE, "source", "status-template.png")
     scale_png(status, 36, os.path.join(OUT, "StatusIcon@2x.png"))
     scale_png(status, 18, os.path.join(OUT, "StatusIcon.png"))
     print("Готово:", OUT)
+
 
 if __name__ == "__main__":
     main()

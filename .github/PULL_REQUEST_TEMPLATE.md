@@ -1,11 +1,12 @@
-## Что изменено
+## Изменение / Change
 
-Опишите проблему и результат.
+Опишите проблему и результат. / Describe the problem and resulting behavior.
 
-## Проверка
+## Проверка / Validation
 
-- [ ] Выполнена `./build.sh universal` на macOS.
-- [ ] Проверены затронутые сценарии интерфейса на RU / EN.
-- [ ] В коммитах нет персональных макросов, секретов и сборок.
+- [ ] Выполнена `./build.sh universal` на macOS. / Universal build passes on macOS.
+- [ ] Запущены затронутые тесты. / Relevant tests were run.
+- [ ] Проверены затронутые сценарии на RU / EN. / Affected flows checked in RU / EN.
+- [ ] Нет персональных макросов, секретов и сборок. / No private macros, secrets, or build artifacts.
 
-Укажите версию macOS, архитектуру и фактические результаты.
+Укажите macOS, архитектуру и результаты. / List macOS, architecture, and actual results.
