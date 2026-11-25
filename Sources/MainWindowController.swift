@@ -374,21 +374,8 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
     func tableView(_ tv: NSTableView, rowViewForRow row: Int) -> NSTableRowView? { DragonRow() }
 
     func tableView(_ tv: NSTableView, viewFor column: NSTableColumn?, row: Int) -> NSView? {
-        let macro = store.macros[row]
-        let cell = NSView(frame: NSRect(x: 0, y: 0, width: 230, height: 76))
-        let icon = NSImageView(frame: NSRect(x: 22, y: 39, width: 17, height: 17))
-        icon.image = NSImage(systemSymbolName: macro.kind == .url ? "globe" : "app", accessibilityDescription: nil)
-        icon.contentTintColor = .dragonGray
-        let name = NSTextField(labelWithString: macro.title)
-        name.font = .systemFont(ofSize: 14, weight: .medium)
-        name.textColor = macro.enabled ? .dragonText : .dragonGray
-        name.lineBreakMode = .byTruncatingTail
-        name.frame = NSRect(x: 50, y: 37, width: 164, height: 22)
-        let key = NSTextField(labelWithString: macro.hotkey?.display ?? L("Без сочетания", "No hotkey"))
-        key.font = .systemFont(ofSize: 11)
-        key.textColor = .dragonGray
-        key.frame = NSRect(x: 50, y: 14, width: 160, height: 18)
-        [icon, name, key].forEach { cell.addSubview($0) }
+        let cell = (tv.makeView(withIdentifier: MacroCell.identifier, owner: nil) as? MacroCell) ?? MacroCell()
+        cell.configure(store.macros[row])
         return cell
     }
 
@@ -442,26 +429,42 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
         }
     }
 
+    /// Меню приложений строится заново только при смене списка (загрузка каталога или
+    /// приложение вне каталога); при переключении макросов меняется лишь выбранный пункт.
+    private var appMenuPaths: [String]?
+    private var appIcons: [String: NSImage] = [:]
+
+    private func appIcon(_ path: String) -> NSImage {
+        if let icon = appIcons[path] { return icon }
+        let icon = NSWorkspace.shared.icon(forFile: path); icon.size = NSSize(width: 16, height: 16)
+        appIcons[path] = icon
+        return icon
+    }
+
     private func fillAppPopup() {
         guard let i = selected else { return }
         let wasLoading = loading; loading = true; defer { loading = wasLoading }
         let path = store.macros[i].appPath
-        appPopup.removeAllItems()
-        appPopup.menu?.addItem(NSMenuItem(title: L("— выберите приложение —", "— choose an application —"), action: nil, keyEquivalent: ""))
         var list = apps
         if !path.isEmpty && !list.contains(where: { $0.path == path }) {
             list.insert(InstalledApp(name: FileManager.default.displayName(atPath: path).replacingOccurrences(of: ".app", with: ""), path: path), at: 0)
         }
-        for a in list {
-            let item = NSMenuItem(title: a.name, action: nil, keyEquivalent: "")
-            let icon = NSWorkspace.shared.icon(forFile: a.path); icon.size = NSSize(width: 16, height: 16)
-            item.image = icon; item.representedObject = a.path
-            appPopup.menu?.addItem(item)
+        let paths = list.map(\.path)
+        if appMenuPaths != paths {
+            appMenuPaths = paths
+            let menu = NSMenu()
+            menu.addItem(NSMenuItem(title: L("— выберите приложение —", "— choose an application —"), action: nil, keyEquivalent: ""))
+            for a in list {
+                let item = NSMenuItem(title: a.name, action: nil, keyEquivalent: "")
+                item.image = appIcon(a.path); item.representedObject = a.path
+                menu.addItem(item)
+            }
+            menu.addItem(.separator())
+            let other = NSMenuItem(title: L("Другое приложение…", "Other application…"), action: nil, keyEquivalent: ""); other.tag = 999
+            menu.addItem(other)
+            appPopup.menu = menu
         }
-        appPopup.menu?.addItem(.separator())
-        let other = NSMenuItem(title: L("Другое приложение…", "Other application…"), action: nil, keyEquivalent: ""); other.tag = 999
-        appPopup.menu?.addItem(other)
-        if let idx = appPopup.menu?.items.firstIndex(where: { ($0.representedObject as? String) == path }), !path.isEmpty { appPopup.selectItem(at: idx) }
+        if !path.isEmpty, let idx = appPopup.menu?.items.firstIndex(where: { ($0.representedObject as? String) == path }) { appPopup.selectItem(at: idx) }
         else { appPopup.selectItem(at: 0) }
     }
 
@@ -470,15 +473,15 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
         guard let i = selected else { return }
         let m = store.macros[i]
         func set(_ s: String, _ c: NSColor) { hotkeyStatus.stringValue = s; hotkeyStatus.textColor = c }
-        guard let hk = m.hotkey else { set(L("Комбинация не задана", "No hotkey set"), .dragonGray); return }
+        guard m.hotkey != nil else { set(L("Комбинация не задана", "No hotkey set"), .dragonGray); return }
         if let status = HotkeyCenter.shared.systemError {
             set(L("Ошибка регистрации сочетаний: ", "Hotkey registration error: ") + String(status), .dragonAccentText)
             return
         }
         if store.paused { set(L("Макросы приостановлены (меню в строке меню)", "Macros are paused (menu bar menu)"), .dragonGray); return }
         if !m.enabled { set(L("Макрос выключен", "Macro is disabled"), .dragonGray); return }
-        if let other = store.macros.enumerated().first(where: { $0.offset != i && $0.element.enabled && hk.same($0.element.hotkey) }) {
-            set(L("Уже используется макросом «\(other.element.title)»", "Already used by “\(other.element.title)”"), .dragonAccentText)
+        if let owner = HotkeyCenter.conflictOwner(for: i, in: store.macros) {
+            set(L("Уже используется макросом «\(owner.title)»", "Already used by “\(owner.title)”"), .dragonAccentText)
         } else if HotkeyCenter.shared.failed.contains(m.id) {
             set(L("Комбинация занята системой или другим приложением", "Hotkey is taken by the system or another app"), .dragonAccentText)
         } else { set(L("●  Комбинация активна", "●  Hotkey active"), .dragonOK) }
@@ -582,11 +585,17 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
             guard !loaded.isEmpty else {
                 self.alert(L("Конфиг пуст", "The config is empty"), L("В файле нет ни одного макроса.", "The file contains no macros.")); return
             }
-            var mode: Int
-            if self.store.macros.isEmpty { mode = 0 } else {
-                let a = NSAlert()
-                a.messageText = L("Загрузить \(loaded.count) макр. из файла?", "Load \(loaded.count) macro(s) from the file?")
-                a.informativeText = L("Заменить текущие макросы или добавить к ним?", "Replace the current macros or add to them?")
+            // Перед применением показываем, что именно будет запускаться: конфиг может быть чужим.
+            let a = NSAlert()
+            a.messageText = L("Загрузить \(loaded.count) макр. из файла?", "Load \(loaded.count) macro(s) from the file?")
+            a.informativeText = Self.importSummary(loaded) + (self.store.macros.isEmpty ? "" :
+                "\n\n" + L("Заменить текущие макросы или добавить к ним?", "Replace the current macros or add to them?"))
+            let mode: Int
+            if self.store.macros.isEmpty {
+                a.addButton(withTitle: L("Загрузить", "Load")); a.addButton(withTitle: L("Отмена", "Cancel"))
+                guard a.runModal() == .alertFirstButtonReturn else { return }
+                mode = 0
+            } else {
                 a.addButton(withTitle: L("Заменить", "Replace")); a.addButton(withTitle: L("Добавить", "Add")); a.addButton(withTitle: L("Отмена", "Cancel"))
                 let resp = a.runModal()
                 if resp == .alertFirstButtonReturn { mode = 0 } else if resp == .alertSecondButtonReturn { mode = 1 } else { return }
@@ -598,6 +607,28 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
             if !self.store.macros.isEmpty { self.table.selectRowIndexes([mode == 0 ? 0 : self.store.macros.count - loaded.count], byExtendingSelection: false) }
             self.loadEditor()
         }
+    }
+
+    /// Краткий список действий импортируемого конфига; необычные ссылки отмечаются отдельно.
+    static func importSummary(_ list: [Macro], limit: Int = 8) -> String {
+        func target(_ m: Macro) -> String {
+            m.kind == .app ? (m.appPath.isEmpty ? "—" : m.appPath) : (m.url.isEmpty ? "—" : m.url)
+        }
+        var lines = list.prefix(limit).map { m -> String in
+            let key = m.hotkey.map { " [\($0.display)]" } ?? ""
+            return "• \(m.title)\(key): \(target(m))"
+        }
+        if list.count > limit { lines.append(L("…и ещё \(list.count - limit)", "…and \(list.count - limit) more")) }
+        let unusual = list.filter { m in
+            guard m.kind == .url, let url = normalizedMacroURL(m.url) else { return false }
+            return urlPolicy(for: url, trusted: Settings.shared.trustedURLTargets) != .open
+        }.count
+        if unusual > 0 {
+            lines.append("")
+            lines.append(L("Ссылок не на сайты: \(unusual). Они откроются только после подтверждения или будут заблокированы.",
+                           "Non-website links: \(unusual). They open only after confirmation or are blocked."))
+        }
+        return lines.joined(separator: "\n")
     }
 
     @objc private func addMacro() {
@@ -650,5 +681,34 @@ final class MainWindowController: NSWindowController, NSTableViewDataSource, NST
         let name = FileManager.default.displayName(atPath: path).replacingOccurrences(of: ".app", with: "")
         if mutate({ $0.appPath = path; if $0.name.isEmpty { $0.name = name } }) { loadEditor() }
         else { fillAppPopup() }
+    }
+}
+
+/// Строка списка переиспользуется таблицей, а не создаётся заново при каждой перерисовке.
+final class MacroCell: NSTableCellView {
+    static let identifier = NSUserInterfaceItemIdentifier("MacroCell")
+    private let icon = NSImageView(frame: NSRect(x: 22, y: 39, width: 17, height: 17))
+    private let name = NSTextField(labelWithString: "")
+    private let key = NSTextField(labelWithString: "")
+
+    init() {
+        super.init(frame: NSRect(x: 0, y: 0, width: 230, height: 76))
+        identifier = Self.identifier
+        icon.contentTintColor = .dragonGray
+        name.font = .systemFont(ofSize: 14, weight: .medium)
+        name.lineBreakMode = .byTruncatingTail
+        name.frame = NSRect(x: 50, y: 37, width: 164, height: 22)
+        key.font = .systemFont(ofSize: 11)
+        key.textColor = .dragonGray
+        key.frame = NSRect(x: 50, y: 14, width: 160, height: 18)
+        [icon, name, key].forEach { addSubview($0) }
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    func configure(_ macro: Macro) {
+        icon.image = NSImage(systemSymbolName: macro.kind == .url ? "globe" : "app", accessibilityDescription: nil)
+        name.stringValue = macro.title
+        name.textColor = macro.enabled ? .dragonText : .dragonGray
+        key.stringValue = macro.hotkey?.display ?? L("Без сочетания", "No hotkey")
     }
 }

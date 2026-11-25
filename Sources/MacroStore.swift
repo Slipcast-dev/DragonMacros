@@ -37,16 +37,21 @@ final class MacroStore {
         let fm = FileManager.default
         guard fm.fileExists(atPath: fileURL.path) else { return }
         writesBlocked = true
-        let data = try Self.readBounded(fileURL)
         let decoded: [Macro]
+        // Слишком большой файл тоже считается повреждённым: копируется и не блокирует запись.
+        // Нечитаемый файл скопировать нельзя, поэтому запись остаётся заблокированной.
         do {
+            let data = try Self.readBounded(fileURL)
             decoded = try JSONDecoder().decode([Macro].self, from: data)
             try Self.validate(decoded)
         } catch {
             let backup = fileURL.deletingLastPathComponent()
                 .appendingPathComponent("macros.corrupt-\(UUID().uuidString).json")
             // Не удаляем предыдущие копии и не продолжаем при ошибке копирования.
-            try fm.copyItem(at: fileURL, to: backup)
+            // Огромный файл не копируется на главном потоке при запуске: он переносится целиком.
+            let oversized = (error as? CocoaError)?.code == .fileReadTooLarge
+            do { oversized ? try fm.moveItem(at: fileURL, to: backup) : try fm.copyItem(at: fileURL, to: backup) }
+            catch { throw StoreError.recoveryBlocked }
             try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: backup.path)
             writesBlocked = false
             throw StoreError.recovered(backup)

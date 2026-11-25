@@ -17,7 +17,7 @@ final class SettingsWindowController: NSWindowController {
     private let hint = NSTextField(labelWithString: "")
 
     init() {
-        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 440, height: 490),
+        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 440, height: 560),
                          styleMask: [.titled, .closable], backing: .buffered, defer: false)
         w.title = L("Настройки", "Settings")
         w.appearance = Theme.appearance
@@ -72,6 +72,15 @@ final class SettingsWindowController: NSWindowController {
         langPopup.addItems(withTitles: ["Русский", "English"])
         langPopup.selectItem(at: s.language == "ru" ? 0 : 1)
         langPopup.target = self; langPopup.action = #selector(langChanged); place(langPopup, 422, 260, 26)
+
+        place(caption(L("Ссылки", "Links")), 470, 300, 14)
+        let reset = NSButton(title: L("Сбросить разрешённые ссылки", "Reset allowed links"), target: self, action: #selector(resetTrustedLinks))
+        reset.bezelStyle = .rounded
+        place(reset, 490, 260, 28)
+        let resetHint = NSTextField(wrappingLabelWithString: L("Ссылки не на сайты снова будут открываться только после подтверждения.",
+                                                               "Non-website links will again ask for confirmation before opening."))
+        resetHint.font = .systemFont(ofSize: 10); resetHint.textColor = .dragonGray
+        place(resetHint, 522, 384, 28)
     }
 
     @objc private func dockChanged() {
@@ -91,6 +100,13 @@ final class SettingsWindowController: NSWindowController {
     @objc private func themeChanged() {
         Settings.shared.theme = [ThemeKind.samurai, .original, .dark, .system][max(0, themePopup.indexOfSelectedItem)]
         DispatchQueue.main.async { self.onUIChange?() }
+    }
+    @objc private func resetTrustedLinks() {
+        let count = Settings.shared.trustedURLTargets.count
+        Settings.shared.trustedURLTargets = []
+        let alert = NSAlert()
+        alert.messageText = count == 0 ? L("Разрешённых ссылок нет", "No allowed links") : L("Разрешения сброшены: \(count)", "Permissions reset: \(count)")
+        if let window = window { alert.beginSheetModal(for: window) } else { alert.runModal() }
     }
     @objc private func langChanged() {
         Settings.shared.language = langPopup.indexOfSelectedItem == 0 ? "ru" : "en"

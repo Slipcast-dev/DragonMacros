@@ -2,6 +2,18 @@
 
 [Русский](CHANGELOG.md) · [English](CHANGELOG.en.md)
 
+## Unreleased
+
+- Hotkey recording now stops when the window loses focus or closes, the language or style changes, or another app becomes active. Previously all macros stopped firing.
+- Links: only `http`, `https` and `mailto` open directly; `file`, `javascript`, `data` and `vbscript` are blocked; other schemes (`smb`, `ssh`, app schemes) open after confirmation, with an “Always open” option per host (not offered for `ssh` or System Settings links); allowed links can be reset in Settings. Schemes without `//` (`tel:`, `javascript:`) are no longer turned into `https://…`.
+- Loading a config first shows the applications, links and hotkeys it contains.
+- Hotkeys refused by macOS are retried when the app becomes active; only the duplicate macro reports a conflict, not the working one.
+- A damaged data file larger than 2 MB is backed up and no longer blocks saving.
+- Pause survives restarts. Launching the app again shows the window of the running copy. Added Redo (⇧⌘Z).
+- Launch at login uses system Login Items (SMAppService) on macOS 13+ and a LaunchAgent on macOS 11–12; a LaunchAgent pointing to a moved app counts as disabled.
+- Faster: the application menu and icons are cached, list rows are reused, the Samurai backdrop pauses while the window is fully covered; `./build.sh` always builds with `-O`.
+- Build: the version is defined once in `build.sh`; optional Developer ID signing and notarization via `SIGN_IDENTITY`, `PKG_SIGN_IDENTITY`, `NOTARY_PROFILE`.
+
 ## 0.5.1 — 2026-11-14
 
 - Centered the macro count and index with dedicated drawing; an empty list displays `0` instead of `00`.

@@ -5,14 +5,25 @@
 # "pkg" делает установочный пакет dist/DragonMacros-<версия>-macOS.pkg (установка в /Applications).
 # "test-app" обновляет DragonMacros-Test.app в корне проекта без установки в Applications.
 # Пример: "./build.sh universal test-app dmg pkg".
+# Подпись для релиза (необязательно): SIGN_IDENTITY="Developer ID Application: …" подписывает приложение,
+# PKG_SIGN_IDENTITY="Developer ID Installer: …" подписывает pkg, NOTARY_PROFILE=<профиль notarytool>
+# отправляет dmg/pkg на нотаризацию и прикрепляет тикет. Без переменных — ad-hoc подпись, как раньше.
 set -e
 cd "$(dirname "$0")"
+# Единственный источник версии: Info.plist и проверки CI читают эти значения.
 VERSION=0.5.1
+BUILD=6
 APP=.build/DragonMacros.app
 rm -rf "$APP"
 mkdir -p .build "$APP/Contents/MacOS" "$APP/Contents/Resources"
 # Кэш модулей хранится рядом со сборкой: домашний каталог может быть недоступен в CI/песочнице.
 MODULE_CACHE="$(pwd)/.build/ModuleCache"
+# Нотаризация выполняется, только если задан профиль notarytool и файл подписан Developer ID.
+notarize() {
+  [ -n "${NOTARY_PROFILE:-}" ] || return 0
+  xcrun notarytool submit "$1" --keychain-profile "$NOTARY_PROFILE" --wait
+  xcrun stapler staple "$1"
+}
 mkdir -p "$MODULE_CACHE"
 case " $* " in *" universal "*) UNIVERSAL=1;; esac
 case " $* " in *" install "*) INSTALL=1;; esac
@@ -25,13 +36,14 @@ if [ -n "$UNIVERSAL" ]; then
   done
   lipo -create .build/dragonmacros-x86_64 .build/dragonmacros-arm64 -output "$APP/Contents/MacOS/DragonMacros"
 else
-  swiftc -Onone -module-cache-path "$MODULE_CACHE" Sources/*.swift -o "$APP/Contents/MacOS/DragonMacros"
+  # Обычная сборка тоже оптимизирована: её ставит "install" и упаковывают dmg/pkg.
+  swiftc -O -whole-module-optimization -module-cache-path "$MODULE_CACHE" Sources/*.swift -o "$APP/Contents/MacOS/DragonMacros"
 fi
 # Иконка приложения из японского солнца; значок строки меню сохраняет силуэт дракона.
 python3 -I Icon/make_icons.py >/dev/null
 cp .build/icons/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp ".build/icons/StatusIcon@2x.png" "$APP/Contents/Resources/StatusIcon@2x.png"
-cat > "$APP/Contents/Info.plist" <<'PLIST'
+cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
@@ -41,15 +53,19 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleExecutable</key><string>DragonMacros</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>0.5.1</string>
-  <key>CFBundleVersion</key><string>6</string>
+  <key>CFBundleShortVersionString</key><string>$VERSION</string>
+  <key>CFBundleVersion</key><string>$BUILD</string>
   <key>LSMinimumSystemVersion</key><string>11.0</string>
   <key>LSUIElement</key><true/>
   <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
 PLIST
-# Hardened runtime + ad-hoc подпись (без нотаризации)
-codesign --force --options runtime --sign - "$APP"
+# Hardened runtime; ad-hoc подпись, если не задан Developer ID.
+if [ -n "${SIGN_IDENTITY:-}" ]; then
+  codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$APP"
+else
+  codesign --force --options runtime --sign - "$APP"
+fi
 codesign --verify --deep --strict "$APP"
 echo "Готово: $(pwd)/$APP"
 if [ -n "$TEST_APP" ]; then
@@ -76,6 +92,8 @@ if [ -n "$DMG" ]; then
   OUT=dist/DragonMacros-$VERSION-macOS.dmg
   rm -f "$OUT"
   hdiutil create -volname "Dragon Macros" -srcfolder .build/dmg -ov -format UDZO "$OUT"
+  if [ -n "${SIGN_IDENTITY:-}" ]; then codesign --force --timestamp --sign "$SIGN_IDENTITY" "$OUT"; fi
+  notarize "$OUT"
   echo "Установщик: $(pwd)/$OUT"
 fi
 if [ -n "$PKG" ]; then
@@ -83,7 +101,12 @@ if [ -n "$PKG" ]; then
   rm -rf .build/pkgroot/* && cp -R "$APP" .build/pkgroot/
   OUT=dist/DragonMacros-$VERSION-macOS.pkg
   rm -f "$OUT"
-  pkgbuild --quiet --root .build/pkgroot --identifier dev.slipcast.dragonmacros.pkg --version "$VERSION" --install-location /Applications "$OUT"
+  if [ -n "${PKG_SIGN_IDENTITY:-}" ]; then
+    pkgbuild --quiet --root .build/pkgroot --identifier dev.slipcast.dragonmacros.pkg --version "$VERSION" --install-location /Applications --sign "$PKG_SIGN_IDENTITY" --timestamp "$OUT"
+  else
+    pkgbuild --quiet --root .build/pkgroot --identifier dev.slipcast.dragonmacros.pkg --version "$VERSION" --install-location /Applications "$OUT"
+  fi
+  notarize "$OUT"
   echo "Установщик: $(pwd)/$OUT"
 fi
 if [ -n "$DMG$PKG" ]; then

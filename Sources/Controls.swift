@@ -36,6 +36,16 @@ final class HeaderButton: NSButton {
         label.isEmpty ? 44 : ceil(NSAttributedString(string: label, attributes: [.font: NSFont.systemFont(ofSize: 13, weight: .medium)]).size().width) + 50
     }
 
+    /// Тонированный символ строится один раз: тема меняется только пересборкой окна.
+    private lazy var tintedIcon: NSImage? = {
+        guard let img = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) else { return nil }
+        let h: CGFloat = 14, w = img.size.height > 0 ? img.size.width / img.size.height * h : h
+        let color = Theme.headerText
+        return NSImage(size: NSSize(width: w, height: h), flipped: false) { rect in
+            img.draw(in: rect); color.set(); rect.fill(using: .sourceAtop); return true
+        }
+    }()
+
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
@@ -54,14 +64,7 @@ final class HeaderButton: NSButton {
         let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 13, weight: .medium), .foregroundColor: Theme.headerText]
         let text = NSAttributedString(string: label, attributes: attrs)
         let ts = text.size()
-        var iconW: CGFloat = 0, icon: NSImage?
-        if let img = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) {
-            let h: CGFloat = 14, w = img.size.height > 0 ? img.size.width / img.size.height * h : h
-            let tinted = NSImage(size: NSSize(width: w, height: h), flipped: false) { rect in
-                img.draw(in: rect); Theme.headerText.set(); rect.fill(using: .sourceAtop); return true
-            }
-            icon = tinted; iconW = w
-        }
+        let icon = tintedIcon, iconW = icon?.size.width ?? 0
         let gap: CGFloat = icon == nil || label.isEmpty ? 0 : 6
         var x = (bounds.width - iconW - gap - ts.width) / 2
         if let icon = icon {
@@ -103,6 +106,33 @@ final class HotkeyField: NSView {
     override var acceptsFirstResponder: Bool { true }
     override func mouseDown(with event: NSEvent) { hint = ""; window?.makeFirstResponder(self); recording = true }
     override func resignFirstResponder() -> Bool { recording = false; return true }
+
+    /// Пока идёт запись, глобальные сочетания сняты. Окно, потерявшее фокус, закрытое
+    /// или пересобранное окно, а также переход в другое приложение завершают запись,
+    /// иначе все макросы перестали бы срабатывать до следующей записи.
+    private var focusTokens: [NSObjectProtocol] = []
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        super.viewWillMove(toWindow: newWindow)
+        cancelRecording()
+        focusTokens.forEach { NotificationCenter.default.removeObserver($0) }
+        focusTokens.removeAll()
+        guard let newWindow = newWindow else { return }
+        let center = NotificationCenter.default
+        for (name, object) in [(NSWindow.didResignKeyNotification, newWindow as AnyObject),
+                               (NSWindow.willCloseNotification, newWindow as AnyObject),
+                               (NSApplication.didResignActiveNotification, NSApp as AnyObject)] {
+            focusTokens.append(center.addObserver(forName: name, object: object, queue: .main) { [weak self] _ in
+                self?.cancelRecording()
+            })
+        }
+    }
+    deinit { focusTokens.forEach { NotificationCenter.default.removeObserver($0) } }
+
+    func cancelRecording() {
+        guard recording else { return }
+        recording = false
+        if window?.firstResponder === self { window?.makeFirstResponder(nil) }
+    }
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         if recording { keyDown(with: event); return true }
         return false

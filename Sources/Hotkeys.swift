@@ -45,6 +45,9 @@ final class HotkeyCenter {
         let modifiers: UInt32
     }
     private var registered: [Registration]?
+    /// Состав последней регистрации и макросы, сочетания которых ОС отклонила.
+    private var pendingTarget: [Registration]?
+    private var systemRefused = Set<UUID>()
 
     private func installHandler() -> Bool {
         guard !installed else { return true }
@@ -111,6 +114,9 @@ final class HotkeyCenter {
         registrationBlocked = false
         guard !paused else { registered = []; return }
         guard installHandler() else { failed = Set(desired.map(\.id)); return }
+        // Отказ ОС (сочетание занято другим приложением) повторяется при следующем вызове:
+        // кэш состава не запоминается, пока все системные регистрации не прошли.
+        systemRefused.removeAll()
         for macro in macros where macro.enabled {
             guard let key = macro.hotkey else { continue }
             guard key.isValid else { failed.insert(macro.id); continue }
@@ -123,8 +129,38 @@ final class HotkeyCenter {
             let status = RegisterEventHotKey(key.keyCode, key.modifiers,
                 EventHotKeyID(signature: OSType(0x44524E47), id: number), GetApplicationEventTarget(), 0, &reference)
             if status == noErr, let reference = reference { refs[number] = (reference, macro.id) }
-            else { failed.insert(macro.id) }
+            else { failed.insert(macro.id); systemRefused.insert(macro.id) }
         }
-        registered = target
+        registered = systemRefused.isEmpty ? target : nil
+        pendingTarget = target
+    }
+
+    /// Повторно регистрирует только те сочетания, в которых отказала ОС. Работающие
+    /// регистрации не снимаются, поэтому нажатия не теряются во время повтора.
+    func retryFailed(_ macros: [Macro], paused: Bool) {
+        guard !systemRefused.isEmpty, !suspended, !paused, !self.paused, !registrationBlocked, installed else { return }
+        for macro in macros where macro.enabled && systemRefused.contains(macro.id) {
+            guard let key = macro.hotkey, key.isValid, !refs.values.contains(where: { $0.id == macro.id }) else { continue }
+            var reference: EventHotKeyRef?
+            let number = next
+            next = next == UInt32.max ? 1 : next + 1
+            guard refs[number] == nil else { continue }
+            let status = RegisterEventHotKey(key.keyCode, key.modifiers,
+                EventHotKeyID(signature: OSType(0x44524E47), id: number), GetApplicationEventTarget(), 0, &reference)
+            if status == noErr, let reference = reference {
+                refs[number] = (reference, macro.id)
+                systemRefused.remove(macro.id)
+                failed.remove(macro.id)
+            }
+        }
+        if systemRefused.isEmpty { registered = pendingTarget }
+    }
+
+    /// Сочетание реально зарегистрировано первым включённым макросом с этими клавишами;
+    /// у остальных показывается конфликт с этим «владельцем».
+    static func conflictOwner(for index: Int, in macros: [Macro]) -> Macro? {
+        let macro = macros[index]
+        guard macro.enabled, let key = macro.hotkey else { return nil }
+        return macros[..<index].first { $0.enabled && key.same($0.hotkey) }
     }
 }
