@@ -378,6 +378,73 @@ final class MacroStoreTests: TestCase {
         }
     }
 
+    func testOversizedStoreIsBackedUpAndDoesNotBlockSaving() throws {
+        try fm.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let oversized = Data(repeating: 32, count: 2_000_001)
+        try oversized.write(to: fileURL)
+        let store = MacroStore(fileURL: fileURL)
+        var backup: URL?
+        expectThrows(try store.load()) { error in
+            guard case StoreError.recovered(let url) = error else { return recordFailure("Ожидалась резервная копия: \(error)") }
+            backup = url
+        }
+        let copy = try requireValue(backup)
+        expectEqual(try Data(contentsOf: copy).count, oversized.count)
+        expectNoThrow(try store.commit([macro()]))
+        expectEqual(store.macros.count, 1)
+    }
+
+    func testURLPolicyAllowsWebBlocksLocalAndAsksForOtherSchemes() throws {
+        func policy(_ raw: String, trusted: Set<String> = []) throws -> URLPolicy {
+            urlPolicy(for: try requireValue(normalizedMacroURL(raw)), trusted: trusted)
+        }
+        expectEqual(try policy("example.com"), .open)
+        expectEqual(try policy("HTTPS://example.com"), .open)
+        expectEqual(try policy("mailto:a@example.com"), .open)
+        expectEqual(try policy("file:///etc/passwd"), .blocked)
+        expectEqual(try policy("javascript:alert(1)"), .blocked)
+        expectEqual(try policy("data:text/html,x"), .blocked)
+        expectEqual(try policy("smb://server/share"), .confirm("smb"))
+        expectEqual(try policy("x-apple.systempreferences:com.apple.preference.security"), .confirm("x-apple.systempreferences"))
+        expectEqual(try policy("smb://server/share", trusted: ["smb:server"]), .open)
+        expectEqual(try policy("smb://other/share", trusted: ["smb:server"]), .confirm("smb"))
+        expectEqual(try policy("ssh://host", trusted: ["ssh:host"]), .confirm("ssh"))
+        expectEqual(try policy("tel:5551234", trusted: ["tel:"]), .open)
+        expectEqual(try policy("tel:5551234"), .confirm("tel"))
+        expectEqual(try policy("file:///tmp", trusted: ["file:"]), .blocked)
+        expectEqual(try policy("tel:+100"), .confirm("tel"))
+        expectEqual(try requireValue(normalizedMacroURL("localhost:8080/app")).absoluteString, "https://localhost:8080/app")
+        expectEqual(try requireValue(normalizedMacroURL("example.com:443")).scheme, "https")
+        expectTrue(normalizedMacroURL("   ") == nil)
+    }
+
+    func testOnlyLaterDuplicateHotkeysReportConflict() throws {
+        var first = macro("Первый"), second = macro("Второй"), disabled = macro("Выключен")
+        disabled.enabled = false
+        var other = macro("Другой")
+        other.hotkey = Hotkey(keyCode: 1, modifiers: UInt32(cmdKey), label: "S")
+        second.hotkey = first.hotkey
+        first.name = "Первый"
+        let list = [disabled, first, other, second]
+        expectTrue(HotkeyCenter.conflictOwner(for: 0, in: list) == nil)
+        expectTrue(HotkeyCenter.conflictOwner(for: 1, in: list) == nil)
+        expectTrue(HotkeyCenter.conflictOwner(for: 2, in: list) == nil)
+        expectEqual(HotkeyCenter.conflictOwner(for: 3, in: list)?.id, first.id)
+    }
+
+    func testPauseAndTrustedSchemesPersist() throws {
+        try withDefaults { defaults, suite in
+            let settings = Settings(defaults: defaults)
+            expectFalse(settings.macrosPaused)
+            expectEqual(settings.trustedURLTargets, [])
+            settings.macrosPaused = true
+            settings.trustedURLTargets.insert("SMB:nas")
+            let reloaded = Settings(defaults: try requireValue(UserDefaults(suiteName: suite)))
+            expectTrue(reloaded.macrosPaused)
+            expectEqual(reloaded.trustedURLTargets, ["smb:nas"])
+        }
+    }
+
     static var allTests = [
         ("testSamuraiMigrationPreservesUnrelatedPreferences", testSamuraiMigrationPreservesUnrelatedPreferences),
         ("testThemeChoiceAfterMigrationSurvivesNewSettingsInstance", testThemeChoiceAfterMigrationSurvivesNewSettingsInstance),
@@ -395,7 +462,11 @@ final class MacroStoreTests: TestCase {
         ("testExportCanBeImportedAndDoesNotChangeDirectoryPermissions", testExportCanBeImportedAndDoesNotChangeDirectoryPermissions),
         ("testInvalidHotkeysAreRejectedBeforeCommitOrImport", testInvalidHotkeysAreRejectedBeforeCommitOrImport),
         ("testCommitRejectsDuplicateIDsAndPreservesPreviousFile", testCommitRejectsDuplicateIDsAndPreservesPreviousFile),
-        ("testMissingStoreLoadsEmptyAndOldDefaultNameMigrates", testMissingStoreLoadsEmptyAndOldDefaultNameMigrates)
+        ("testMissingStoreLoadsEmptyAndOldDefaultNameMigrates", testMissingStoreLoadsEmptyAndOldDefaultNameMigrates),
+        ("testOversizedStoreIsBackedUpAndDoesNotBlockSaving", testOversizedStoreIsBackedUpAndDoesNotBlockSaving),
+        ("testURLPolicyAllowsWebBlocksLocalAndAsksForOtherSchemes", testURLPolicyAllowsWebBlocksLocalAndAsksForOtherSchemes),
+        ("testOnlyLaterDuplicateHotkeysReportConflict", testOnlyLaterDuplicateHotkeysReportConflict),
+        ("testPauseAndTrustedSchemesPersist", testPauseAndTrustedSchemesPersist)
     ]
 }
 

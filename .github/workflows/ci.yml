@@ -38,6 +38,10 @@ jobs:
           codesign --verify --deep --strict --verbose=2 .build/DragonMacros.app
           plutil -lint .build/DragonMacros.app/Contents/Info.plist
           codesign --verify --deep --strict DragonMacros-Test.app
-          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' DragonMacros-Test.app/Contents/Info.plist)" = "0.5.1"
-          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' DragonMacros-Test.app/Contents/Info.plist)" = "6"
+          version=$(sed -n 's/^VERSION=//p' build.sh)
+          build=$(sed -n 's/^BUILD=//p' build.sh)
+          test -n "$version" && test -n "$build"
+          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' DragonMacros-Test.app/Contents/Info.plist)" = "$version"
+          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' DragonMacros-Test.app/Contents/Info.plist)" = "$build"
+          test -f "dist/DragonMacros-$version-macOS.dmg" && test -f "dist/DragonMacros-$version-macOS.pkg"
           (cd dist && shasum -a 256 -c SHA256SUMS.txt)

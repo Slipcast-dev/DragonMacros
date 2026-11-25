@@ -100,6 +100,10 @@ git config core.hooksPath .githooks
 app to `~/Applications`. The test copy uses **the same user macros and preferences**
 as the regular app; it is not an isolated data profile. Only one instance runs at a time.
 
+For a Developer ID release, set `SIGN_IDENTITY` (app and dmg signing),
+`PKG_SIGN_IDENTITY` (pkg signing) and `NOTARY_PROFILE` (an `xcrun notarytool`
+keychain profile for notarization). Without them the build uses ad-hoc signing.
+
 ## Checks
 
 ```sh

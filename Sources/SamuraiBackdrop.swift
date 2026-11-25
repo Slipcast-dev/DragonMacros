@@ -30,7 +30,7 @@ final class SamuraiBackdrop: NSView {
         for name in [NSApplication.didBecomeActiveNotification, NSApplication.didResignActiveNotification,
                      NSWindow.didMiniaturizeNotification, NSWindow.didDeminiaturizeNotification,
                      NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification,
-                     NSWindow.willCloseNotification, .dragonMotionChanged] {
+                     NSWindow.willCloseNotification, NSWindow.didChangeOcclusionStateNotification, .dragonMotionChanged] {
             tokens.append((center, center.addObserver(forName: name, object: nil, queue: .main) { [weak self] event in
                 guard let self = self else { return }
                 if event.name == NSWindow.willCloseNotification, let closing = event.object as? NSWindow,
@@ -162,7 +162,9 @@ final class SamuraiBackdrop: NSView {
     }
 
     private func updateMotion() {
-        reconcileMotion(isActive: NSApp.isActive && window?.isVisible == true && window?.isMiniaturized == false)
+        // Окно, полностью закрытое другими окнами, не тратит GPU на фоновое движение.
+        reconcileMotion(isActive: NSApp.isActive && window?.isVisible == true && window?.isMiniaturized == false
+            && window?.occlusionState.contains(.visible) == true)
     }
 
     /// Детерминированная граница жизненного цикла: тест может передать активность,

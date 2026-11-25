@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 // MARK: - Приложение
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+    static let showWindowNotification = Notification.Name("dev.slipcast.dragonmacros.showWindow")
     private let store = MacroStore()
     private var controller: MainWindowController!
     private var settingsController: SettingsWindowController?
@@ -14,11 +15,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var autoItem = NSMenuItem()
 
     func applicationDidFinishLaunching(_ n: Notification) {
-        // Один экземпляр: иначе комбинации зарегистрируются дважды.
+        // Один экземпляр: иначе комбинации зарегистрируются дважды. Повторный запуск
+        // просит уже работающую копию показать окно — даже если у неё нет значка в Dock.
         if let id = Bundle.main.bundleIdentifier,
-           NSRunningApplication.runningApplications(withBundleIdentifier: id).contains(where: { $0 != NSRunningApplication.current }) {
+           let running = NSRunningApplication.runningApplications(withBundleIdentifier: id).first(where: { $0 != NSRunningApplication.current }) {
+            DistributedNotificationCenter.default().postNotificationName(Self.showWindowNotification, object: id,
+                                                                         userInfo: nil, deliverImmediately: true)
+            running.activate(options: [])
             NSApp.terminate(nil); return
         }
+        if let id = Bundle.main.bundleIdentifier {
+            DistributedNotificationCenter.default().addObserver(forName: Self.showWindowNotification, object: id, queue: .main) { [weak self] _ in
+                self?.openWindow()
+            }
+        }
+        store.paused = Settings.shared.macrosPaused
         var loadError: Error?
         do { try store.load() } catch { loadError = error }
         store.onChange = { [weak self] in
@@ -64,6 +75,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Не завершаем процесс, если ожидающее изменение не удалось записать.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         controller == nil || controller.flushPendingEdits() ? .terminateNow : .terminateCancel
+    }
+
+    /// Сочетание, занятое другим приложением, могло освободиться, пока мы были в фоне.
+    func applicationDidBecomeActive(_ notification: Notification) {
+        guard controller != nil else { return }
+        HotkeyCenter.shared.retryFailed(store.macros, paused: store.paused)
+        controller.refreshHotkeyStatus()
     }
 
     func applicationShouldHandleReopen(_ app: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -123,12 +141,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func openWindow() {
+        guard controller != nil else { return }
         if controller.window?.isMiniaturized == true { controller.window?.deminiaturize(nil) }
         controller.show()
     }
 
     @objc private func togglePause() {
         store.paused.toggle()
+        Settings.shared.macrosPaused = store.paused
         HotkeyCenter.shared.register(store.macros, paused: store.paused)
         controller.refreshHotkeyStatus()
     }
@@ -159,6 +179,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let saveItem = NSMenuItem(title: L("Сохранить конфиг…", "Save Config…"), action: #selector(MainWindowController.saveConfig), keyEquivalent: "s")
         sub(L("Файл", "File"), [loadItem, saveItem])
         sub(L("Правка", "Edit"), [NSMenuItem(title: L("Отменить", "Undo"), action: Selector(("undo:")), keyEquivalent: "z"),
+                       { let redo = NSMenuItem(title: L("Повторить", "Redo"), action: Selector(("redo:")), keyEquivalent: "z")
+                         redo.keyEquivalentModifierMask = [.command, .shift]; return redo }(),
                        .separator(),
                        NSMenuItem(title: L("Вырезать", "Cut"), action: #selector(NSText.cut(_:)), keyEquivalent: "x"),
                        NSMenuItem(title: L("Копировать", "Copy"), action: #selector(NSText.copy(_:)), keyEquivalent: "c"),
