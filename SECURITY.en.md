@@ -21,12 +21,15 @@ version, reproduction steps, and impact. No response time is guaranteed.
 
 ## Supported versions
 
-Fixes target the current version, 0.5.1. Older versions are not maintained separately.
+Fixes target the current version, 1.0. Older versions are not maintained separately.
 
 ## Protection boundaries
 
-The app does not use App Sandbox. A URL scheme blocklist cannot guarantee the safety
-of other system handlers. A `.app` extension does not establish trust in a bundle.
+The app does not use App Sandbox. Only `http`, `https` and `mailto` open directly;
+`file`, `javascript`, `data` and `vbscript` are blocked, and other schemes need confirmation.
+“Always open” applies to a single scheme+host pair and can be reset in Settings; it is not
+offered for `ssh` or System Settings links. A confirmed link is handed to a system handler
+whose safety the app cannot guarantee. A `.app` extension does not establish trust in a bundle.
 File permissions are not encryption and do not protect against other processes
 running as the same user. Write failures are reported; failed backup creation for a
 damaged data file blocks subsequent writes. Engineering checks and limitations are

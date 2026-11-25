@@ -19,11 +19,11 @@ Samurai Motion styling, and Russian and English localization.
 
 **macOS 11+ · Intel and Apple Silicon · no third-party Swift dependencies.**
 
-## Download 0.5.1
+## Download 1.0
 
-[**DMG — drag to Applications**](https://github.com/Slipcast-dev/DragonMacros/releases/download/v0.5.1/DragonMacros-0.5.1-macOS.dmg)
-· [PKG installer](https://github.com/Slipcast-dev/DragonMacros/releases/download/v0.5.1/DragonMacros-0.5.1-macOS.pkg)
-· [SHA256 checksums](https://github.com/Slipcast-dev/DragonMacros/releases/download/v0.5.1/SHA256SUMS.txt)
+[**DMG — drag to Applications**](https://github.com/Slipcast-dev/DragonMacros/releases/download/v1.0/DragonMacros-1.0-macOS.dmg)
+· [PKG installer](https://github.com/Slipcast-dev/DragonMacros/releases/download/v1.0/DragonMacros-1.0-macOS.pkg)
+· [SHA256 checksums](https://github.com/Slipcast-dev/DragonMacros/releases/download/v1.0/SHA256SUMS.txt)
 · [All releases](https://github.com/Slipcast-dev/DragonMacros/releases)
 
 Both installers include a universal application for Intel and Apple Silicon.
@@ -39,26 +39,27 @@ asset downloads, not unique users or installations.
 
 - Global shortcuts through Carbon `RegisterEventHotKey`, without Input Monitoring or Accessibility permission.
 - Launch an installed `.app` or open a website / link; record a shortcut and see registration conflicts.
-- Load and save JSON configurations with **⌘O / ⌘S**, replacing or appending macros.
+- Safe links: websites and mail open directly, local files and scripts are blocked, other schemes (`smb:`, `ssh:`, app schemes) open only after confirmation.
+- Load and save JSON configurations with **⌘O / ⌘S**; loading first lists the actions inside, then replaces or appends macros.
 - Four styles: **Samurai**, original white and red, black and red, and system. Motion respects macOS Reduce Motion and can be disabled in settings.
 - Russian and English UI, switchable while the app is running.
-- Pause macros, use a menu bar icon, show the app in the Dock, launch at login, or start minimized.
+- Pause macros (kept across restarts), use a menu bar icon, show the app in the Dock, launch at login (macOS Login Items on 13+), or start minimized.
 - Local storage without telemetry. The app does not transmit data; selected links are handed to system URL handlers.
 
 ## Interface
 
-![Samurai: graphite, vermilion, and a red sun](docs/images/interface-0.5.1-samurai.png)
+![Samurai: graphite, vermilion, and a red sun](docs/images/interface-samurai.png)
 
 <details>
 <summary>Other styles and first launch</summary>
 
-![Original white and red style](docs/images/interface-0.5.1-original.png)
+![Original white and red style](docs/images/interface-original.png)
 
-![Black and red style](docs/images/interface-0.5.1-dark.png)
+![Black and red style](docs/images/interface-dark.png)
 
-![System style](docs/images/interface-0.5.1-system.png)
+![System style](docs/images/interface-system.png)
 
-![Empty list: add a macro or load a configuration](docs/images/interface-0.5.1-empty.png)
+![Empty list: add a macro or load a configuration](docs/images/interface-empty.png)
 
 </details>
 
@@ -75,7 +76,7 @@ Import is limited to **500 macros and 2 MB**; exceeding either limit rejects the
 Text saves automatically 0.4 seconds after input. Pending edits are saved immediately
 before changing macros, closing a window, exporting, or quitting. Write errors are
 shown to the user. Damaged data is copied to a unique `macros.corrupt-<UUID>.json`
-backup; failed backup creation blocks further writes. See the [security policy](SECURITY.en.md)
+backup (files over 2 MB are moved as a whole); failed backup creation blocks further writes. See the [security policy](SECURITY.en.md)
 for details and protection boundaries.
 
 ## Build from source
@@ -121,7 +122,7 @@ The Swift module cache stays in `.build/`.
 ## Development and support
 
 - [Contributing](CONTRIBUTING.en.md) · [Code of conduct](CODE_OF_CONDUCT.en.md).
-- [Changelog](CHANGELOG.en.md) · [0.5.1 release notes](docs/RELEASE-v0.5.1.md#english).
+- [Changelog](CHANGELOG.en.md) · [1.0 release notes](docs/RELEASE-v1.0.md#english).
 - [Report a bug](https://github.com/Slipcast-dev/DragonMacros/issues/new/choose).
 - Vulnerabilities: [SECURITY.en.md](SECURITY.en.md). Do not post sensitive details in public issues.
 - Engineering notes: [architecture and checks](docs/PROJECT_REVIEW.md) (Russian), [design](docs/DESIGN.en.md).

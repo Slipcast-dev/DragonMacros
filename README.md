@@ -19,11 +19,11 @@
 
 **macOS 11+ · Intel и Apple Silicon · без сторонних Swift-зависимостей.**
 
-## Скачать 0.5.1
+## Скачать 1.0
 
-[**DMG — перетащить в «Программы»**](https://github.com/Slipcast-dev/DragonMacros/releases/download/v0.5.1/DragonMacros-0.5.1-macOS.dmg)
-· [PKG — установщик](https://github.com/Slipcast-dev/DragonMacros/releases/download/v0.5.1/DragonMacros-0.5.1-macOS.pkg)
-· [SHA256](https://github.com/Slipcast-dev/DragonMacros/releases/download/v0.5.1/SHA256SUMS.txt)
+[**DMG — перетащить в «Программы»**](https://github.com/Slipcast-dev/DragonMacros/releases/download/v1.0/DragonMacros-1.0-macOS.dmg)
+· [PKG — установщик](https://github.com/Slipcast-dev/DragonMacros/releases/download/v1.0/DragonMacros-1.0-macOS.pkg)
+· [SHA256](https://github.com/Slipcast-dev/DragonMacros/releases/download/v1.0/SHA256SUMS.txt)
 · [Все релизы](https://github.com/Slipcast-dev/DragonMacros/releases)
 
 Оба установщика содержат универсальное приложение для Intel и Apple Silicon.
@@ -39,26 +39,27 @@
 
 - Глобальные сочетания через Carbon `RegisterEventHotKey`, без разрешений «Мониторинг ввода» и «Универсальный доступ».
 - Запуск установленного `.app` или открытие сайта / ссылки; запись сочетания и отображение конфликтов.
-- Загрузка и сохранение JSON-конфига через **⌘O / ⌘S**, с заменой или добавлением макросов.
+- Безопасные ссылки: сайты и почта открываются сразу, локальные файлы и скрипты запрещены, остальные схемы (`smb:`, `ssh:`, схемы приложений) — только после подтверждения.
+- Загрузка и сохранение JSON-конфига через **⌘O / ⌘S**: перед загрузкой показывается список действий, макросы можно заменить или добавить.
 - Четыре стиля: **Самурай**, бело-красный, чёрно-красный и системный. Анимация учитывает «Уменьшение движения» macOS и отключается в настройках.
 - Русский и английский интерфейсы, переключаемые на лету.
-- Пауза макросов, значок строки меню, отображение в Dock, запуск при входе и запуск в свёрнутом виде.
+- Пауза макросов (сохраняется между запусками), значок строки меню, отображение в Dock, запуск при входе (объекты входа macOS 13+) и запуск в свёрнутом виде.
 - Локальное хранение без телеметрии. Приложение не отправляет данные; выбранные ссылки передаются системным обработчикам.
 
 ## Интерфейс
 
-![Самурай: графит, киноварь и красное солнце](docs/images/interface-0.5.1-samurai.png)
+![Самурай: графит, киноварь и красное солнце](docs/images/interface-samurai.png)
 
 <details>
 <summary>Другие темы и первый запуск</summary>
 
-![Бело-красный стиль](docs/images/interface-0.5.1-original.png)
+![Бело-красный стиль](docs/images/interface-original.png)
 
-![Чёрно-красный стиль](docs/images/interface-0.5.1-dark.png)
+![Чёрно-красный стиль](docs/images/interface-dark.png)
 
-![Системный стиль](docs/images/interface-0.5.1-system.png)
+![Системный стиль](docs/images/interface-system.png)
 
-![Пустой список: добавить макрос или загрузить конфиг](docs/images/interface-0.5.1-empty.png)
+![Пустой список: добавить макрос или загрузить конфиг](docs/images/interface-empty.png)
 
 </details>
 
@@ -75,7 +76,7 @@
 Текст автоматически сохраняется через 0,4 секунды после ввода; перед сменой макроса,
 закрытием окна, экспортом и выходом изменения записываются сразу. Ошибки записи
 показываются пользователю. Повреждённый файл копируется под уникальным именем
-`macros.corrupt-<UUID>.json`; при неудачном резервировании дальнейшая запись блокируется.
+`macros.corrupt-<UUID>.json` (файл больше 2 МБ переносится целиком); при неудачном резервировании дальнейшая запись блокируется.
 Подробности и ограничения — в [политике безопасности](SECURITY.md).
 
 ## Сборка из исходников
@@ -120,7 +121,7 @@ python3 -m unittest discover -s Icon -p 'test_*.py'
 ## Разработка и поддержка
 
 - [Участие в проекте](CONTRIBUTING.md) · [Правила сообщества](CODE_OF_CONDUCT.md).
-- [История изменений](CHANGELOG.md) · [Заметки к 0.5.1](docs/RELEASE-v0.5.1.md).
+- [История изменений](CHANGELOG.md) · [Заметки к 1.0](docs/RELEASE-v1.0.md).
 - [Сообщить об ошибке](https://github.com/Slipcast-dev/DragonMacros/issues/new/choose).
 - Уязвимости: [SECURITY.md](SECURITY.md). Не публикуйте чувствительные детали в issues.
 - Инженерные материалы: [архитектура и проверки](docs/PROJECT_REVIEW.md), [дизайн](docs/DESIGN.md).

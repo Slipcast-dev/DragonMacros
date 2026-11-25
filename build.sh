@@ -11,8 +11,8 @@
 set -e
 cd "$(dirname "$0")"
 # Единственный источник версии: Info.plist и проверки CI читают эти значения.
-VERSION=0.5.1
-BUILD=6
+VERSION=1.0
+BUILD=7
 APP=.build/DragonMacros.app
 rm -rf "$APP"
 mkdir -p .build "$APP/Contents/MacOS" "$APP/Contents/Resources"

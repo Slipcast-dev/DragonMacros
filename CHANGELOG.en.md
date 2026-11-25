@@ -2,8 +2,9 @@
 
 [Русский](CHANGELOG.md) · [English](CHANGELOG.en.md)
 
-## Unreleased
+## 1.0 — 2026-11-26
 
+- First stable release, build 7.
 - Hotkey recording now stops when the window loses focus or closes, the language or style changes, or another app becomes active. Previously all macros stopped firing.
 - Links: only `http`, `https` and `mailto` open directly; `file`, `javascript`, `data` and `vbscript` are blocked; other schemes (`smb`, `ssh`, app schemes) open after confirmation, with an “Always open” option per host (not offered for `ssh` or System Settings links); allowed links can be reset in Settings. Schemes without `//` (`tel:`, `javascript:`) are no longer turned into `https://…`.
 - Loading a config first shows the applications, links and hotkeys it contains.
@@ -13,6 +14,7 @@
 - Launch at login uses system Login Items (SMAppService) on macOS 13+ and a LaunchAgent on macOS 11–12; a LaunchAgent pointing to a moved app counts as disabled.
 - Faster: the application menu and icons are cached, list rows are reused, the Samurai backdrop pauses while the window is fully covered; `./build.sh` always builds with `-O`.
 - Build: the version is defined once in `build.sh`; optional Developer ID signing and notarization via `SIGN_IDENTITY`, `PKG_SIGN_IDENTITY`, `NOTARY_PROFILE`.
+- Repository cleanup: unused mockups and 0.5 screenshots removed, interface screenshots re-rendered without a version in their names, release notes in [docs/RELEASE-v1.0.md](docs/RELEASE-v1.0.md).
 
 ## 0.5.1 — 2026-11-14
 
