@@ -2,7 +2,7 @@
 
 [Русский](DESIGN.md) · [English](DESIGN.en.md)
 
-Application version: 0.5.1. The visual reference is the approved interactive
+Application version: 1.0. The visual reference is the approved interactive
 [Samurai Motion mockup](mockups/samurai-motion.html). The mockup specifies appearance;
 the working application remains native AppKit, without HTML/WebView.
 
@@ -100,6 +100,11 @@ After integration, compare the working window with the mockup in five areas: pal
 layout, typography, control states, and artwork/motion. Also check resizing, Russian
 and English UI, disabled animation, and macOS Reduce Motion. This document describes
 the intended contract; it does not replace visual verification of the built app.
+
+## 1.0 verification
+
+The design is unchanged in 1.0. README screenshots were re-rendered by the isolated AppKit
+check; the Settings window gained a Links section for resetting allowed links and is now 560 pt tall.
 
 ## 0.5.1 fix verification
 
