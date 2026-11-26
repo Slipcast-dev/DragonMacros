@@ -30,6 +30,20 @@ final class Settings {
         get { Set((d.stringArray(forKey: "trustedURLTargets") ?? []).map { $0.lowercased() }) }
         set { d.set(newValue.sorted(), forKey: "trustedURLTargets") }
     }
+    /// Фоновая проверка обновлений при запуске и раз в сутки; по умолчанию включена.
+    var checkForUpdates: Bool {
+        get { d.object(forKey: "checkForUpdates") as? Bool ?? true }
+        set { d.set(newValue, forKey: "checkForUpdates") }
+    }
+    /// Версия, о которой фоновая проверка больше не напоминает. Ручная проверка её показывает.
+    var skippedUpdateVersion: String? {
+        get { d.string(forKey: "skippedUpdateVersion") }
+        set { d.set(newValue, forKey: "skippedUpdateVersion") }
+    }
+    var lastUpdateCheck: Date? {
+        get { d.object(forKey: "lastUpdateCheck") as? Date }
+        set { d.set(newValue, forKey: "lastUpdateCheck") }
+    }
     var startMinimized: Bool {
         get { d.object(forKey: "startMinimized") as? Bool ?? false }
         set { d.set(newValue, forKey: "startMinimized") }

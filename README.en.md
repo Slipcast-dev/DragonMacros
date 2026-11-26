@@ -19,11 +19,11 @@ Samurai Motion styling, and Russian and English localization.
 
 **macOS 11+ · Intel and Apple Silicon · no third-party Swift dependencies.**
 
-## Download 1.0
+## Download 3.1
 
-[**DMG — drag to Applications**](https://github.com/Slipcast-dev/DragonMacros/releases/download/v1.0/DragonMacros-1.0-macOS.dmg)
-· [PKG installer](https://github.com/Slipcast-dev/DragonMacros/releases/download/v1.0/DragonMacros-1.0-macOS.pkg)
-· [SHA256 checksums](https://github.com/Slipcast-dev/DragonMacros/releases/download/v1.0/SHA256SUMS.txt)
+[**DMG — drag to Applications**](https://github.com/Slipcast-dev/DragonMacros/releases/download/v3.1/DragonMacros-3.1-macOS.dmg)
+· [PKG installer](https://github.com/Slipcast-dev/DragonMacros/releases/download/v3.1/DragonMacros-3.1-macOS.pkg)
+· [SHA256 checksums](https://github.com/Slipcast-dev/DragonMacros/releases/download/v3.1/SHA256SUMS.txt)
 · [All releases](https://github.com/Slipcast-dev/DragonMacros/releases)
 
 Both installers include a universal application for Intel and Apple Silicon.
@@ -44,7 +44,8 @@ asset downloads, not unique users or installations.
 - Four styles: **Samurai**, original white and red, black and red, and system. Motion respects macOS Reduce Motion and can be disabled in settings.
 - Russian and English UI, switchable while the app is running.
 - Pause macros (kept across restarts), use a menu bar icon, show the app in the Dock, launch at login (macOS Login Items on 13+), or start minimized.
-- Local storage without telemetry. The app does not transmit data; selected links are handed to system URL handlers.
+- Updates: at launch and once a day the app checks the latest GitHub release; with your consent it downloads the `.pkg` installer, verifies SHA256 and opens macOS Installer. Turn checking off or run it manually in Settings (Updates section) or from the menu.
+- Local storage without telemetry. The only network request is the GitHub update check; selected links are handed to system URL handlers.
 
 ## Interface
 
@@ -122,7 +123,7 @@ The Swift module cache stays in `.build/`.
 ## Development and support
 
 - [Contributing](CONTRIBUTING.en.md) · [Code of conduct](CODE_OF_CONDUCT.en.md).
-- [Changelog](CHANGELOG.en.md) · [1.0 release notes](docs/RELEASE-v1.0.md#english).
+- [Changelog](CHANGELOG.en.md) · [3.1 release notes](docs/RELEASE-v3.1.md#english).
 - [Report a bug](https://github.com/Slipcast-dev/DragonMacros/issues/new/choose).
 - Vulnerabilities: [SECURITY.en.md](SECURITY.en.md). Do not post sensitive details in public issues.
 - Engineering notes: [architecture and checks](docs/PROJECT_REVIEW.md) (Russian), [design](docs/DESIGN.en.md).

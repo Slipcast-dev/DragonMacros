@@ -445,6 +445,81 @@ final class MacroStoreTests: TestCase {
         }
     }
 
+    private func releaseJSON(tag: String = "v3.2", draft: Bool = false,
+                             packageURL: String? = nil, size: Int = 2_500_000, withSums: Bool = true) -> Data {
+        let version = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
+        let base = "https://github.com/Slipcast-dev/DragonMacros/releases/download/\(tag)/"
+        var assets: [[String: Any]] = [
+            ["name": "DragonMacros-\(version)-macOS.dmg", "browser_download_url": base + "DragonMacros-\(version)-macOS.dmg", "size": 3_000_000],
+            ["name": "DragonMacros-\(version)-macOS.pkg", "browser_download_url": packageURL ?? base + "DragonMacros-\(version)-macOS.pkg", "size": size]
+        ]
+        if withSums { assets.append(["name": "SHA256SUMS.txt", "browser_download_url": base + "SHA256SUMS.txt", "size": 190]) }
+        let json: [String: Any] = ["tag_name": tag, "html_url": "https://github.com/Slipcast-dev/DragonMacros/releases/tag/\(tag)",
+                                   "draft": draft, "prerelease": false, "assets": assets]
+        return try! JSONSerialization.data(withJSONObject: json)
+    }
+
+    func testUpdateVersionsCompareNumerically() throws {
+        expectEqual(UpdateLogic.version(fromTag: "v3.1"), "3.1")
+        expectEqual(UpdateLogic.version(fromTag: "1.0.2"), "1.0.2")
+        expectTrue(UpdateLogic.version(fromTag: "v3.1-beta") == nil)
+        expectTrue(UpdateLogic.version(fromTag: "latest") == nil)
+        expectTrue(UpdateLogic.isNewer("3.1", than: "1.0"))
+        expectTrue(UpdateLogic.isNewer("1.10", than: "1.9"))
+        expectTrue(UpdateLogic.isNewer("3.1.1", than: "3.1"))
+        expectFalse(UpdateLogic.isNewer("3.1", than: "3.1.0"))
+        expectFalse(UpdateLogic.isNewer("1.0", than: "3.1"))
+    }
+
+    func testLatestReleaseParsingPicksPackageAndRejectsUntrustedAssets() throws {
+        let release = try UpdateLogic.parseLatestRelease(releaseJSON())
+        expectEqual(release.version, "3.2")
+        expectEqual(release.packageName, "DragonMacros-3.2-macOS.pkg")
+        expectEqual(release.packageURL.lastPathComponent, "DragonMacros-3.2-macOS.pkg")
+        expectEqual(release.checksumsURL.lastPathComponent, "SHA256SUMS.txt")
+        func expectError(_ data: Data, _ expected: UpdateError) {
+            expectThrows(try UpdateLogic.parseLatestRelease(data)) { error in expectEqual(error as? UpdateError, expected) }
+        }
+        expectError(releaseJSON(draft: true), .invalidRelease)
+        expectError(releaseJSON(tag: "nightly"), .invalidRelease)
+        expectError(releaseJSON(withSums: false), .checksumMissing)
+        expectError(releaseJSON(size: 200_000_000), .tooLarge)
+        expectError(releaseJSON(packageURL: "https://evil.example/DragonMacros-3.2-macOS.pkg"), .untrustedURL)
+        expectError(releaseJSON(packageURL: "http://github.com/Slipcast-dev/DragonMacros/releases/download/v3.2/x.pkg"), .untrustedURL)
+        expectError(releaseJSON(packageURL: "https://github.com/Other/DragonMacros/releases/download/v3.2/x.pkg"), .untrustedURL)
+        expectError(releaseJSON(packageURL: "https://github.com/Slipcast-dev/DragonMacros/releases/download/../../../evil/x.pkg"), .untrustedURL)
+        expectError(releaseJSON(packageURL: "https://github.com:8443/Slipcast-dev/DragonMacros/releases/download/v3.2/x.pkg"), .untrustedURL)
+        expectError(releaseJSON(packageURL: "https://user@github.com/Slipcast-dev/DragonMacros/releases/download/v3.2/x.pkg"), .untrustedURL)
+        expectError(Data("not json".utf8), .invalidRelease)
+    }
+
+    func testChecksumLookupAndPackageVerification() throws {
+        let file = directory.appendingPathComponent("DragonMacros-3.2-macOS.pkg")
+        try Data("xar!payload".utf8).write(to: file)
+        let hash = try UpdateLogic.sha256(of: file)
+        expectEqual(hash, "3899a78a83e1227af00b43da8d27904d5a618f88cd2e42502c587e505259156c")
+        let sums = "\(String(repeating: "0", count: 64))  DragonMacros-3.2-macOS.dmg\n\(hash.uppercased()) *DragonMacros-3.2-macOS.pkg\n"
+        expectEqual(UpdateLogic.checksum(for: "DragonMacros-3.2-macOS.pkg", in: sums), hash)
+        expectTrue(UpdateLogic.checksum(for: "DragonMacros-9.9-macOS.pkg", in: sums) == nil)
+        expectTrue(UpdateLogic.checksum(for: "x.pkg", in: "nothex  x.pkg") == nil)
+        expectTrue(UpdateLogic.looksLikePackage(file))
+        try Data("<html>".utf8).write(to: file)
+        expectFalse(UpdateLogic.looksLikePackage(file))
+    }
+
+    func testUpdatePreferencesDefaultOnAndPersist() throws {
+        try withDefaults { defaults, suite in
+            let settings = Settings(defaults: defaults)
+            expectTrue(settings.checkForUpdates)
+            expectTrue(settings.skippedUpdateVersion == nil)
+            settings.checkForUpdates = false
+            settings.skippedUpdateVersion = "3.2"
+            let reloaded = Settings(defaults: try requireValue(UserDefaults(suiteName: suite)))
+            expectFalse(reloaded.checkForUpdates)
+            expectEqual(reloaded.skippedUpdateVersion, "3.2")
+        }
+    }
+
     static var allTests = [
         ("testSamuraiMigrationPreservesUnrelatedPreferences", testSamuraiMigrationPreservesUnrelatedPreferences),
         ("testThemeChoiceAfterMigrationSurvivesNewSettingsInstance", testThemeChoiceAfterMigrationSurvivesNewSettingsInstance),
@@ -466,7 +541,11 @@ final class MacroStoreTests: TestCase {
         ("testOversizedStoreIsBackedUpAndDoesNotBlockSaving", testOversizedStoreIsBackedUpAndDoesNotBlockSaving),
         ("testURLPolicyAllowsWebBlocksLocalAndAsksForOtherSchemes", testURLPolicyAllowsWebBlocksLocalAndAsksForOtherSchemes),
         ("testOnlyLaterDuplicateHotkeysReportConflict", testOnlyLaterDuplicateHotkeysReportConflict),
-        ("testPauseAndTrustedSchemesPersist", testPauseAndTrustedSchemesPersist)
+        ("testPauseAndTrustedSchemesPersist", testPauseAndTrustedSchemesPersist),
+        ("testUpdateVersionsCompareNumerically", testUpdateVersionsCompareNumerically),
+        ("testLatestReleaseParsingPicksPackageAndRejectsUntrustedAssets", testLatestReleaseParsingPicksPackageAndRejectsUntrustedAssets),
+        ("testChecksumLookupAndPackageVerification", testChecksumLookupAndPackageVerification),
+        ("testUpdatePreferencesDefaultOnAndPersist", testUpdatePreferencesDefaultOnAndPersist)
     ]
 }
 

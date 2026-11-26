@@ -19,11 +19,11 @@
 
 **macOS 11+ · Intel и Apple Silicon · без сторонних Swift-зависимостей.**
 
-## Скачать 1.0
+## Скачать 3.1
 
-[**DMG — перетащить в «Программы»**](https://github.com/Slipcast-dev/DragonMacros/releases/download/v1.0/DragonMacros-1.0-macOS.dmg)
-· [PKG — установщик](https://github.com/Slipcast-dev/DragonMacros/releases/download/v1.0/DragonMacros-1.0-macOS.pkg)
-· [SHA256](https://github.com/Slipcast-dev/DragonMacros/releases/download/v1.0/SHA256SUMS.txt)
+[**DMG — перетащить в «Программы»**](https://github.com/Slipcast-dev/DragonMacros/releases/download/v3.1/DragonMacros-3.1-macOS.dmg)
+· [PKG — установщик](https://github.com/Slipcast-dev/DragonMacros/releases/download/v3.1/DragonMacros-3.1-macOS.pkg)
+· [SHA256](https://github.com/Slipcast-dev/DragonMacros/releases/download/v3.1/SHA256SUMS.txt)
 · [Все релизы](https://github.com/Slipcast-dev/DragonMacros/releases)
 
 Оба установщика содержат универсальное приложение для Intel и Apple Silicon.
@@ -44,7 +44,8 @@
 - Четыре стиля: **Самурай**, бело-красный, чёрно-красный и системный. Анимация учитывает «Уменьшение движения» macOS и отключается в настройках.
 - Русский и английский интерфейсы, переключаемые на лету.
 - Пауза макросов (сохраняется между запусками), значок строки меню, отображение в Dock, запуск при входе (объекты входа macOS 13+) и запуск в свёрнутом виде.
-- Локальное хранение без телеметрии. Приложение не отправляет данные; выбранные ссылки передаются системным обработчикам.
+- Обновления: при запуске и раз в сутки приложение проверяет последний релиз на GitHub, по согласию загружает установщик `.pkg`, сверяет SHA256 и открывает «Установщик» macOS. Проверку можно выключить или запустить вручную в настройках (раздел «Обновления») и в меню.
+- Локальное хранение без телеметрии. Единственный сетевой запрос — проверка обновлений на GitHub; выбранные ссылки передаются системным обработчикам.
 
 ## Интерфейс
 
@@ -121,7 +122,7 @@ python3 -m unittest discover -s Icon -p 'test_*.py'
 ## Разработка и поддержка
 
 - [Участие в проекте](CONTRIBUTING.md) · [Правила сообщества](CODE_OF_CONDUCT.md).
-- [История изменений](CHANGELOG.md) · [Заметки к 1.0](docs/RELEASE-v1.0.md).
+- [История изменений](CHANGELOG.md) · [Заметки к 3.1](docs/RELEASE-v3.1.md).
 - [Сообщить об ошибке](https://github.com/Slipcast-dev/DragonMacros/issues/new/choose).
 - Уязвимости: [SECURITY.md](SECURITY.md). Не публикуйте чувствительные детали в issues.
 - Инженерные материалы: [архитектура и проверки](docs/PROJECT_REVIEW.md), [дизайн](docs/DESIGN.md).

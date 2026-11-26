@@ -15,9 +15,12 @@ final class SettingsWindowController: NSWindowController {
     private let themePopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let langPopup = NSPopUpButton(frame: .zero, pullsDown: false)
     private let hint = NSTextField(labelWithString: "")
+    private let updateCheck = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    private let updateStatus = NSTextField(labelWithString: "")
+    private var updateObserver: NSObjectProtocol?
 
     init() {
-        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 440, height: 560),
+        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 440, height: 716),
                          styleMask: [.titled, .closable], backing: .buffered, defer: false)
         w.title = L("Настройки", "Settings")
         w.appearance = Theme.appearance
@@ -81,7 +84,35 @@ final class SettingsWindowController: NSWindowController {
                                                                "Non-website links will again ask for confirmation before opening."))
         resetHint.font = .systemFont(ofSize: 10); resetHint.textColor = .dragonGray
         place(resetHint, 522, 384, 28)
+
+        place(caption(L("Обновления", "Updates")), 570, 300, 14)
+        check(updateCheck, L("Проверять обновления при запуске", "Check for updates at launch"), s.checkForUpdates, #selector(updateCheckChanged)); place(updateCheck, 592)
+        let checkNow = NSButton(title: L("Проверить сейчас", "Check Now"), target: self, action: #selector(checkUpdatesNow))
+        checkNow.bezelStyle = .rounded
+        place(checkNow, 620, 200, 28)
+        updateStatus.font = .systemFont(ofSize: 11); updateStatus.textColor = .dragonGray
+        updateStatus.lineBreakMode = .byTruncatingTail
+        place(updateStatus, 654, 384, 16)
+        let updateHint = NSTextField(wrappingLabelWithString: L("Новые версии загружаются из релизов GitHub, проверяются по SHA256 и устанавливаются через «Установщик» macOS.",
+                                                                "New versions are downloaded from GitHub releases, verified with SHA256 and installed with macOS Installer."))
+        updateHint.font = .systemFont(ofSize: 10); updateHint.textColor = .dragonGray
+        place(updateHint, 674, 384, 28)
+        refreshUpdateStatus()
+        updateObserver = NotificationCenter.default.addObserver(forName: .dragonUpdateStatusChanged, object: nil, queue: .main) { [weak self] _ in
+            self?.refreshUpdateStatus()
+        }
     }
+
+    deinit { if let observer = updateObserver { NotificationCenter.default.removeObserver(observer) } }
+
+    private func refreshUpdateStatus() {
+        updateStatus.stringValue = L("Версия ", "Version ") + Updater.shared.currentVersion + " · " + Updater.shared.statusText
+    }
+    @objc private func updateCheckChanged() {
+        Settings.shared.checkForUpdates = updateCheck.state == .on
+        Updater.shared.startAutomaticChecks()
+    }
+    @objc private func checkUpdatesNow() { Updater.shared.check(userInitiated: true) }
 
     @objc private func dockChanged() {
         if dockCheck.state == .off && menuCheck.state == .off { dockCheck.state = .on; NSSound.beep(); return }
