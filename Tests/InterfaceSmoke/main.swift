@@ -206,6 +206,23 @@ for (index, theme) in [ThemeKind.samurai, .original, .dark, .system].enumerated(
     _ = try snapshot(rebuilt, name: "popup-" + theme.rawValue)
 }
 rebuilt.close()
+// Окно настроек: все разделы, включая «Обновления», помещаются в окно без наложений.
+do {
+    let content = settingsController.window!.contentView!
+    content.layoutSubtreeIfNeeded()
+    let views = descendants(content).filter { $0.superview is FlippedView }
+    for view in views {
+        require(view.superview!.bounds.contains(view.frame), "Элемент настроек помещается в окно: \(view)")
+    }
+    let sorted = views.sorted { $0.frame.minY < $1.frame.minY }
+    for (a, b) in zip(sorted, sorted.dropFirst()) where a.frame.intersects(b.frame) {
+        require(a.frame.intersection(b.frame).height < 1, "Элементы настроек не перекрываются: \(a) / \(b)")
+    }
+    require(descendants(content).contains { ($0 as? NSButton)?.title == "Проверить сейчас" }, "Есть кнопка проверки обновлений")
+    let bitmap = content.bitmapImageRepForCachingDisplay(in: content.bounds)!
+    settingsController.window!.effectiveAppearance.performAsCurrentDrawingAppearance { content.cacheDisplay(in: content.bounds, to: bitmap) }
+    try bitmap.representation(using: .png, properties: [:])!.write(to: outputDirectory.appendingPathComponent("settings.png"))
+}
 settingsController.close()
 
 // Структурный контракт Core Animation: статичные PNG не доказывают движение presentation layer.

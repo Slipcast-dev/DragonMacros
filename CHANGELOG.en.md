@@ -2,6 +2,14 @@
 
 [Русский](CHANGELOG.md) · [English](CHANGELOG.en.md)
 
+## 3.1 — 2026-11-26
+
+- Version 3.1, build 8.
+- Update checks: at launch and once a day the app queries the latest GitHub release in the background and offers to install a newer version; you can skip it or turn checking off.
+- “Download and Install” fetches the `.pkg` from the release, verifies SHA256 against `SHA256SUMS.txt` from the same release, checks size and format, and opens macOS Installer; the download can be cancelled.
+- New Updates section in Settings: toggle, Check Now, version and last check time; “Check for Updates…” in the app menu and the menu bar.
+- Tests for release parsing, version comparison and checksum verification; UI check of the Settings window. Release notes: [docs/RELEASE-v3.1.md](docs/RELEASE-v3.1.md).
+
 ## 1.0 — 2026-11-26
 
 - First stable release, build 7.
@@ -14,7 +22,7 @@
 - Launch at login uses system Login Items (SMAppService) on macOS 13+ and a LaunchAgent on macOS 11–12; a LaunchAgent pointing to a moved app counts as disabled.
 - Faster: the application menu and icons are cached, list rows are reused, the Samurai backdrop pauses while the window is fully covered; `./build.sh` always builds with `-O`.
 - Build: the version is defined once in `build.sh`; optional Developer ID signing and notarization via `SIGN_IDENTITY`, `PKG_SIGN_IDENTITY`, `NOTARY_PROFILE`.
-- Repository cleanup: unused mockups and 0.5 screenshots removed, interface screenshots re-rendered without a version in their names, release notes in [docs/RELEASE-v1.0.md](docs/RELEASE-v1.0.md).
+- Repository cleanup: unused mockups and 0.5 screenshots removed, interface screenshots re-rendered without a version in their names, release notes on [GitHub](https://github.com/Slipcast-dev/DragonMacros/releases/tag/v1.0).
 
 ## 0.5.1 — 2026-11-14
 

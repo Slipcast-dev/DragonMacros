@@ -5,7 +5,8 @@
 ## Application behavior
 
 - Registers global shortcuts through Carbon `RegisterEventHotKey` to open `.app` bundles and links. It does not record a global input stream and needs neither Input Monitoring nor Accessibility permission.
-- Does not make network requests or send data. Selected links are passed to system URL handlers, including the default browser.
+- The only network request is the update check: `GET https://api.github.com/repos/Slipcast-dev/DragonMacros/releases/latest` with `User-Agent: DragonMacros/<version>`, at launch and once a day (can be disabled in Settings). No user data is sent. Selected links are passed to system URL handlers, including the default browser.
+- An update is downloaded only after consent and only from this repository's releases over HTTPS (`github.com/Slipcast-dev/DragonMacros/releases/download/…`). The `.pkg` installer is checked against `SHA256SUMS.txt` from the same release, plus size (up to 100 MB) and format; a mismatching file is deleted. macOS Installer performs the installation and asks for an administrator password. A checksum from the same release protects against corruption, not against a compromised repository: Developer ID signing is not used yet.
 - Blocks the `file:`, `javascript:`, `data:`, and `vbscript:` URL schemes; app actions require a `.app` directory.
 - Configuration exchange uses ordinary JSON files chosen by the user. Import only trusted configurations: they may refer to any app or link. Limits are 2 MB and 500 macros, including the total after appending.
 - Stores macros at `~/Library/Application Support/DragonMacros/macros.json` with mode 0600 in a directory with mode 0700. Preferences use `UserDefaults`. Launch at login creates `~/Library/LaunchAgents/dev.slipcast.dragonmacros.plist` only when enabled by the user.
@@ -21,7 +22,7 @@ version, reproduction steps, and impact. No response time is guaranteed.
 
 ## Supported versions
 
-Fixes target the current version, 1.0. Older versions are not maintained separately.
+Fixes target the current version, 3.1. Older versions are not maintained separately.
 
 ## Protection boundaries
 

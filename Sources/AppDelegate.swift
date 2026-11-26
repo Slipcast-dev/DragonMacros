@@ -66,6 +66,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             alert.runModal()
         }
 
+        // Фоновая проверка обновлений (выключается в настройках).
+        Updater.shared.startAutomaticChecks(atLaunch: true)
+
         // Системная тема меняется — перестроить интерфейс, если выбран стиль «как в системе».
         DistributedNotificationCenter.default().addObserver(forName: Notification.Name("AppleInterfaceThemeChangedNotification"), object: nil, queue: .main) { [weak self] _ in
             if Settings.shared.theme == .system { DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { self?.reloadUI() } }
@@ -82,6 +85,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard controller != nil else { return }
         HotkeyCenter.shared.retryFailed(store.macros, paused: store.paused)
         controller.refreshHotkeyStatus()
+        // Найденное в фоне обновление показываем, когда пользователь вернулся в приложение.
+        DispatchQueue.main.async { Updater.shared.showPendingOffer() }
     }
 
     func applicationShouldHandleReopen(_ app: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -153,6 +158,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         controller.refreshHotkeyStatus()
     }
 
+    @objc private func checkForUpdates() { Updater.shared.check(userInitiated: true) }
+
     @objc private func toggleAutostart() { setLaunchAtLogin(!launchAtLogin) }
 
     /// Меню в строке меню и главное меню приложения (нужно для ⌘C/⌘V/⌘A в полях ввода, ⌘W/⌘Q и ⌘,).
@@ -162,8 +169,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let settings = NSMenuItem(title: L("Настройки…", "Settings…"), action: #selector(openSettings), keyEquivalent: ""); settings.target = self
         pauseItem = NSMenuItem(title: "", action: #selector(togglePause), keyEquivalent: ""); pauseItem.target = self
         autoItem = NSMenuItem(title: L("Запускать при входе в систему", "Launch at login"), action: #selector(toggleAutostart), keyEquivalent: ""); autoItem.target = self
+        let updates = NSMenuItem(title: L("Проверить обновления…", "Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: ""); updates.target = self
         let quit = NSMenuItem(title: L("Выйти", "Quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
-        [open, settings, .separator(), pauseItem, autoItem, .separator(), quit].forEach { menu.addItem($0) }
+        [open, settings, updates, .separator(), pauseItem, autoItem, .separator(), quit].forEach { menu.addItem($0) }
         menuWillOpen(menu)
 
         let main = NSMenu()
@@ -172,7 +180,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let m = NSMenu(title: title); items.forEach { m.addItem($0) }; host.submenu = m
         }
         let prefs = NSMenuItem(title: L("Настройки…", "Settings…"), action: #selector(openSettings), keyEquivalent: ","); prefs.target = self
-        sub("Dragon Macros", [prefs, .separator(),
+        let appUpdates = NSMenuItem(title: L("Проверить обновления…", "Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: ""); appUpdates.target = self
+        sub("Dragon Macros", [prefs, appUpdates, .separator(),
                               NSMenuItem(title: L("Скрыть Dragon Macros", "Hide Dragon Macros"), action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"),
                               .separator(), NSMenuItem(title: L("Выйти", "Quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")])
         let loadItem = NSMenuItem(title: L("Загрузить конфиг…", "Load Config…"), action: #selector(MainWindowController.loadConfig), keyEquivalent: "o")
